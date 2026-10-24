@@ -52,16 +52,36 @@ def _save_plots(plot_dir: str) -> list:
     return paths
 
 
-def run(code: str, stdin_text: str = "", timeout: float = 30.0, plot_dir: str = "") -> str:
+def run(code: str, stdin_text: str = "", timeout: float = 30.0, plot_dir: str = "", workspace: str = "", trace: bool = False) -> str:
     out, err = io.StringIO(), io.StringIO()
     res = {"stdout": "", "stderr": "", "elapsed_ms": 0, "ok": True, "timed_out": False, "plots": []}
     waited = [0.0]
+    steps = []
+    if workspace:
+        os.makedirs(workspace, exist_ok=True)
+        os.chdir(workspace)
+        for p in (os.path.join(workspace, "_libs"), workspace):
+            if p not in sys.path:
+                sys.path.insert(0, p)
+
+    def _tracer(frame, event, arg):
+        if frame.f_code.co_filename != "main.py" or len(steps) >= 400:
+            return None
+        if event == "line":
+            loc = {k: repr(v)[:30] for k, v in frame.f_locals.items() if not k.startswith("__") and not callable(v)}
+            steps.append(f"L{frame.f_lineno}: " + ", ".join(f"{k}={v}" for k, v in list(loc.items())[:6]))
+        return _tracer
     ns = {"__name__": "__main__", "__file__": "main.py"}
     ns["input"] = _make_input(waited)
 
     def target():
         try:
-            exec(compile(code, "main.py", "exec"), ns)
+            if trace:
+                sys.settrace(_tracer)
+            try:
+                exec(compile(code, "main.py", "exec"), ns)
+            finally:
+                sys.settrace(None)
             res["plots"] = _save_plots(plot_dir)
         except SystemExit as e:
             if e.code not in (None, 0) and not res["timed_out"]:
@@ -91,6 +111,7 @@ def run(code: str, stdin_text: str = "", timeout: float = 30.0, plot_dir: str = 
                 err.write(f"\n⏱ Execution exceeded {timeout:.0f}s and was stopped.\n")
     finally:
         sys.stdin = old_in
+    res["trace"] = "\n".join(steps)
     res["elapsed_ms"] = int((time.perf_counter() - start) * 1000)
     res["stdout"], res["stderr"] = out.getvalue(), err.getvalue()
     return json.dumps(res)
@@ -121,3 +142,26 @@ def tidy(code: str) -> str:
             blanks = 0
         out.append(line)
     return "\n".join(out).strip("\n") + "\n"
+
+
+def pip_install(name: str, workspace: str) -> str:
+    """Install a pure-Python package from PyPI into <workspace>/_libs (no dependency resolution)."""
+    import io, re, urllib.request, zipfile
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", name or ""):
+        return "Enter a valid package name."
+    libs = os.path.join(workspace, "_libs")
+    os.makedirs(libs, exist_ok=True)
+    try:
+        with urllib.request.urlopen(f"https://pypi.org/pypi/{name}/json", timeout=20) as r:
+            data = json.load(r)
+        whl = next((f for f in data["urls"] if f["packagetype"] == "bdist_wheel" and f["filename"].endswith("none-any.whl")), None)
+        if whl is None:
+            return f"'{name}' has no pure-Python wheel (it needs native code), so it can't be installed here."
+        with urllib.request.urlopen(whl["url"], timeout=60) as r:
+            blob = r.read()
+        zipfile.ZipFile(io.BytesIO(blob)).extractall(libs)
+        if libs not in sys.path:
+            sys.path.insert(0, libs)
+        return f"Installed {name} {data['info']['version']}. Dependencies are not installed automatically."
+    except Exception as e:
+        return f"Could not install {name}: {e}"

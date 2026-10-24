@@ -89,6 +89,7 @@ fun IdeScreen(vm: IdeViewModel) {
     var menu by remember { mutableStateOf(false) }
     var showThemes by remember { mutableStateOf(false) }
     var showOutline by remember { mutableStateOf(false) }
+    var showPip by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     val clip = LocalClipboardManager.current
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -112,6 +113,8 @@ fun IdeScreen(vm: IdeViewModel) {
                             DropdownMenu(menu, { menu = false }) {
                                 listOf<Pair<String, () -> Unit>>("Undo" to { vm.undo() }, "Redo" to { vm.redo() },
                                     "Find & replace" to { vm.showFind = !vm.showFind }, "Tidy code" to { vm.tidy() },
+                                    "Run with trace (step debugger)" to { vm.runWithTrace() },
+                                    "Install package (pip)" to { showPip = true },
                                     "Toggle comment" to { vm.toggleComment() },
                                     "Duplicate line" to { vm.duplicateLine() },
                                     "Delete line" to { vm.deleteLine() },
@@ -176,7 +179,7 @@ fun IdeScreen(vm: IdeViewModel) {
     if (vm.showOutput) ModalBottomSheet({ vm.showOutput = false }, containerColor = LineColors.Midnight) {
         Column(Modifier.fillMaxWidth().heightIn(min = 320.dp, max = 560.dp).padding(horizontal = 12.dp)) {
             TabRow(vm.outTab, containerColor = Color.Transparent, contentColor = LineColors.Gold) {
-                listOf("Output", "Input", "AI", "History").forEachIndexed { i, t -> Tab(vm.outTab == i, { vm.outTab = i }, text = { Text(t) }) }
+                listOf("Output", "Input", "AI", "History", "Trace").forEachIndexed { i, t -> Tab(vm.outTab == i, { vm.outTab = i }, text = { Text(t) }) }
             }
             Box(Modifier.weight(1f).fillMaxWidth().padding(top = 8.dp)) {
                 when (vm.outTab) {
@@ -197,6 +200,9 @@ fun IdeScreen(vm: IdeViewModel) {
                     }
                     1 -> OutlinedTextField(vm.stdin, { vm.stdin = it }, Modifier.fillMaxSize(),
                         label = { Text("stdin (one line per input() call)") })
+                    4 -> SelectionContainer { Column(Modifier.verticalScroll(rememberScrollState())) {
+                        Text(vm.trace.ifBlank { "Use the menu: Run with trace, to see every executed line with its variables." },
+                            color = LineColors.Ivory, fontFamily = FontFamily.Monospace, fontSize = 12.sp) } }
                     3 -> Column(Modifier.verticalScroll(rememberScrollState())) {
                         if (vm.history.isEmpty()) Text("No runs yet.", color = LineColors.Muted)
                         vm.history.forEach { Text(it, color = LineColors.Ivory, fontSize = 12.sp, fontFamily = FontFamily.Monospace,
@@ -255,6 +261,18 @@ fun IdeScreen(vm: IdeViewModel) {
             title = { Text("Input") },
             text = { OutlinedTextField(text, { text = it }, singleLine = true,
                 label = { Text(prompt.ifBlank { "Type your input" }) }) })
+    }
+
+    if (showPip) {
+        var pkg by remember { mutableStateOf("") }
+        AlertDialog({ showPip = false },
+            confirmButton = { TextButton({ vm.installPackage(pkg) }, enabled = !vm.pipBusy) { Text(if (vm.pipBusy) "Installing…" else "Install") } },
+            dismissButton = { TextButton({ showPip = false }) { Text("Close") } },
+            title = { Text("Install package") },
+            text = { Column {
+                OutlinedTextField(pkg, { pkg = it }, singleLine = true, label = { Text("PyPI name, e.g. colorama") })
+                Text(vm.pipLog, Modifier.padding(top = 8.dp), fontSize = 12.sp, color = LineColors.Muted)
+            } })
     }
 
     if (showOutline) AlertDialog({ showOutline = false },

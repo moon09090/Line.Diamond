@@ -35,7 +35,7 @@ val PALETTES = listOf(
     Palette("🦋 Butterfly", true, Color(0xFF0A0818), Color(0xFF15112B), Color(0xFFF472B6), Color(0xFFFFEFF8), Color(0xFF9A8DBF), Color(0x0DFFFFFF), Color(0xFF34195E), Color(0xFF60A5FA), Fx.BUTTERFLY),
     Palette("Dracula", true, Color(0xFF282A36), Color(0xFF343746), Color(0xFFBD93F9), Color(0xFFF8F8F2), Color(0xFF6272A4), Color(0x14FFFFFF), Color(0xFF44475A), Color(0xFFFF79C6), Fx.AURORA),
     Palette("Ivory Light", false, Color(0xFFFAF7F0), Color(0xFFEDE6D6), Color(0xFF9A6B00), Color(0xFF1B1F2A), Color(0xFF7A7F8E), Color(0x14000000), Color(0xFFFFFFFF), Color(0xFF6D3FD6), Fx.NONE)
-)
+) + GENERATED_PALETTES
 
 object LineColors {
     var p by mutableStateOf(PALETTES[0])

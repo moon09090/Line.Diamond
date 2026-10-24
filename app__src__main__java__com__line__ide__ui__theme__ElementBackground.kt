@@ -23,7 +23,7 @@ import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin
 
-enum class Fx { AURORA, FIRE, WATER, EARTH, AIR, LIGHTNING, ICE, FOREST, COSMOS, SAKURA, MATRIX, NEON, LAVA, PRISM, FLOWERS, LEAF, DROPLETS, SKY, MOON, CARTOON, BUTTERFLY, NONE }
+enum class Fx { AURORA, FIRE, WATER, EARTH, AIR, LIGHTNING, ICE, FOREST, COSMOS, SAKURA, MATRIX, NEON, LAVA, PRISM, FLOWERS, LEAF, DROPLETS, SKY, MOON, CARTOON, BUTTERFLY, FIREWORKS, CONFETTI, BUBBLES, HEARTS, RINGS, COMET, SPIRAL, DIAMONDS, RIBBONS, STARDUST, NONE }
 
 private const val TAU = 6.2832f
 
@@ -64,6 +64,16 @@ fun ElementBackground(content: @Composable () -> Unit) {
             Fx.MOON -> moon(t)
             Fx.CARTOON -> cartoon(t)
             Fx.BUTTERFLY -> butterflies(t)
+            Fx.FIREWORKS -> fireworks(t)
+            Fx.CONFETTI -> confetti(t)
+            Fx.BUBBLES -> bubbles(t)
+            Fx.HEARTS -> hearts(t)
+            Fx.RINGS -> rings(t)
+            Fx.COMET -> comet(t)
+            Fx.SPIRAL -> spiral(t)
+            Fx.DIAMONDS -> diamonds(t)
+            Fx.RIBBONS -> ribbons(t)
+            Fx.STARDUST -> stardust(t)
             else -> {}
         }
     }) { content() }
@@ -359,5 +369,120 @@ private fun DrawScope.butterflies(t: Float) {
         drawOval(col.copy(alpha = 0.4f), Offset(cx - w * flap * 0.7f, cy), Size(w * flap * 0.7f, w * 0.7f))
         drawOval(col.copy(alpha = 0.4f), Offset(cx, cy), Size(w * flap * 0.7f, w * 0.7f))
         drawLine(Color.White.copy(alpha = 0.5f), Offset(cx, cy - w * 0.5f), Offset(cx, cy + w * 0.5f), strokeWidth = 2f)
+    }
+}
+
+private fun DrawScope.fireworks(t: Float) {
+    val a = LineColors.Gold; val b = LineColors.Violet
+    for (n in 0 until 4) {
+        val idx = floor(t * 3f + n * 0.25f).toInt()
+        val life = (t * 3f + n * 0.25f) % 1f
+        val seed = n * 7 + idx % 3
+        val cx = size.width * (0.15f + 0.7f * rnd(seed, 1))
+        val cy = size.height * (0.15f + 0.4f * rnd(seed, 2))
+        val r = life * size.width * 0.28f
+        for (k in 0 until 24) {
+            val ang = k * TAU / 24f
+            drawCircle((if (k % 2 == 0) a else b).copy(alpha = (1f - life) * 0.9f), 3f * (1f - life * 0.5f),
+                Offset(cx + cos(ang) * r, cy + sin(ang) * r + life * life * 60f))
+        }
+    }
+}
+
+private fun DrawScope.confetti(t: Float) {
+    val cols = listOf(LineColors.Gold, LineColors.Violet, LineColors.Ivory)
+    for (i in 0 until 50) {
+        val life = (t * (2 + (rnd(i, 1) * 3).toInt()) + rnd(i, 2)) % 1f
+        val c = Offset(size.width * rnd(i, 3) + sin(life * TAU * 2 + i) * 24f, size.height * (life * 1.1f - 0.05f))
+        rotate(life * 720f + i * 30f, c) { drawRect(cols[i % 3].copy(alpha = 0.75f), Offset(c.x - 5f, c.y - 3f), Size(10f, 6f)) }
+    }
+}
+
+private fun DrawScope.bubbles(t: Float) {
+    for (i in 0 until 18) {
+        val life = (t * (1 + i % 3) + rnd(i, 2)) % 1f
+        val r = 14f + rnd(i, 4) * 36f
+        val c = Offset(size.width * rnd(i, 3) + sin(life * TAU * 2 + i) * 16f, size.height * (1.1f - life * 1.25f))
+        drawCircle((if (i % 2 == 0) LineColors.Gold else LineColors.Violet).copy(alpha = 0.55f * sin(life * 3.1416f)), r, c, style = Stroke(2f))
+        drawCircle(Color.White.copy(alpha = 0.35f * sin(life * 3.1416f)), r * 0.15f, Offset(c.x - r * 0.4f, c.y - r * 0.4f))
+    }
+}
+
+private fun DrawScope.hearts(t: Float) {
+    for (i in 0 until 14) {
+        val life = (t * (1 + i % 2) + rnd(i, 2)) % 1f
+        val r = (10f + rnd(i, 4) * 16f) * (1f + 0.12f * sin(t * TAU * 6f + i))
+        val x = size.width * rnd(i, 3) + sin(life * TAU * 2 + i) * 20f
+        val y = size.height * (1.1f - life * 1.2f)
+        val col = (if (i % 2 == 0) LineColors.Gold else LineColors.Violet).copy(alpha = 0.6f * sin(life * 3.1416f))
+        drawCircle(col, r / 2f, Offset(x - r / 2f, y))
+        drawCircle(col, r / 2f, Offset(x + r / 2f, y))
+        val p = Path()
+        p.moveTo(x - r * 0.98f, y + r * 0.12f); p.lineTo(x + r * 0.98f, y + r * 0.12f); p.lineTo(x, y + r * 1.15f); p.close()
+        drawPath(p, col)
+    }
+}
+
+private fun DrawScope.rings(t: Float) {
+    val c = Offset(size.width * 0.5f, size.height * 0.45f)
+    for (i in 0 until 6) {
+        val life = (t * 3f + i / 6f) % 1f
+        drawCircle((if (i % 2 == 0) LineColors.Gold else LineColors.Violet).copy(alpha = (1f - life) * 0.5f),
+            life * size.width * 0.95f, c, style = Stroke(2.5f))
+    }
+}
+
+private fun DrawScope.comet(t: Float) {
+    for (i in 0 until 7) {
+        val life = (t * (2 + i % 3) + rnd(i, 2)) % 1f
+        val hx = (size.width + 200f) * life - 100f + rnd(i, 3) * 120f
+        val hy = size.height * (0.1f + 0.8f * rnd(i, 4)) * 0.6f + life * size.height * 0.4f
+        val col = if (i % 2 == 0) LineColors.Gold else LineColors.Violet
+        for (k in 0 until 12) drawCircle(col.copy(alpha = (1f - k / 12f) * 0.6f), 4f - k * 0.25f, Offset(hx - k * 9f, hy - k * 5f))
+    }
+}
+
+private fun DrawScope.spiral(t: Float) {
+    val c = Offset(size.width * 0.5f, size.height * 0.4f)
+    for (k in 0 until 120) {
+        val ang = k * 0.35f + t * TAU
+        val rad = k * size.width * 0.0045f
+        drawCircle((if (k % 2 == 0) LineColors.Gold else LineColors.Violet).copy(alpha = 0.8f * (1f - k / 130f)), 1.5f + (120 - k) * 0.012f,
+            Offset(c.x + cos(ang) * rad, c.y + sin(ang) * rad * 0.7f))
+    }
+}
+
+private fun DrawScope.diamonds(t: Float) {
+    for (i in 0 until 12) {
+        val life = (t * (1 + i % 2) + rnd(i, 2)) % 1f
+        val s = 10f + rnd(i, 4) * 22f
+        val c = Offset(size.width * rnd(i, 3) + sin(life * TAU + i) * 20f, size.height * (1.1f - life * 1.2f))
+        rotate(45f + life * 180f, c) {
+            drawRect((if (i % 2 == 0) LineColors.Gold else LineColors.Violet).copy(alpha = 0.6f * sin(life * 3.1416f)),
+                Offset(c.x - s, c.y - s), Size(2f * s, 2f * s), style = Stroke(2f))
+        }
+    }
+}
+
+private fun DrawScope.ribbons(t: Float) {
+    for (w in 0 until 5) {
+        val path = Path()
+        val base = size.height * (0.25f + w * 0.14f)
+        path.moveTo(0f, base)
+        var x = 0f
+        while (x <= size.width) {
+            path.lineTo(x, base + 26f * sin(x / (110f + w * 25f) + t * TAU * (1 + w % 2) * (if (w % 2 == 0) 1 else -1)))
+            x += 10f
+        }
+        drawPath(path, (if (w % 2 == 0) LineColors.Gold else LineColors.Violet).copy(alpha = 0.18f), style = Stroke(width = 14f, cap = StrokeCap.Round))
+    }
+}
+
+private fun DrawScope.stardust(t: Float) {
+    for (i in 0 until 80) {
+        val life = (t * (1 + i % 3) + rnd(i, 2)) % 1f
+        val a = 0.3f + 0.7f * (0.5f + 0.5f * sin(t * TAU * (2 + i % 4) + i))
+        val col = when (i % 3) { 0 -> LineColors.Gold; 1 -> LineColors.Violet; else -> Color.White }
+        drawCircle(col.copy(alpha = a * 0.7f), 1f + rnd(i, 4) * 2f, Offset(size.width * rnd(i, 3) + life * 90f - 45f, size.height * life))
     }
 }

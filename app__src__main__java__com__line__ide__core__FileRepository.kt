@@ -6,6 +6,8 @@ import java.io.File
 class FileRepository(context: Context) {
     private val root = File(context.filesDir, "workspace").apply { mkdirs() }
 
+    val path: String get() = root.absolutePath
+
     private fun safe(name: String) = name.replace(Regex("[^A-Za-z0-9_.-]"), "_").let {
         if (it.endsWith(".py")) it else "$it.py"
     }

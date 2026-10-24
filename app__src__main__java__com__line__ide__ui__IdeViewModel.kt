@@ -60,6 +60,10 @@ class IdeViewModel(app: Application) : AndroidViewModel(app) {
     val history = mutableStateListOf<String>()
     var aiQuestion by mutableStateOf("")
     var showOutput by mutableStateOf(false)
+    var trace by mutableStateOf("")
+    var pipLog by mutableStateOf("")
+    var pipBusy by mutableStateOf(false)
+    private var wantTrace = false
     var inputPrompt by mutableStateOf<String?>(null)
     var inputSeq by mutableStateOf(0)
     var outTab by mutableStateOf(0)
@@ -138,8 +142,10 @@ class IdeViewModel(app: Application) : AndroidViewModel(app) {
         save(); running = true; status = "Running…"; output = ""; showOutput = true; outTab = 0
         viewModelScope.launch {
             val dir = getApplication<Application>().cacheDir.resolve("plots").apply { deleteRecursively(); mkdirs() }
-            val r = PythonEngine.run(editor.selection.let { if (it.collapsed) editor.text else editor.text.substring(it.min, it.max) }, stdin, prefs.timeout.toDouble(), dir.absolutePath)
+            val r = PythonEngine.run(editor.selection.let { if (it.collapsed) editor.text else editor.text.substring(it.min, it.max) }, stdin, prefs.timeout.toDouble(), dir.absolutePath, repo.path, wantTrace)
             plots.clear(); plots.addAll(r.plots)
+            trace = r.trace; wantTrace = false
+            if (r.trace.isNotBlank()) outTab = 4
             output = (r.stdout + r.stderr).ifBlank { if (r.plots.isEmpty()) "(no output)" else "" }
             isError = !r.ok
             status = (if (r.ok) "✓ Finished" else if (r.timedOut) "⏱ Timed out" else "✗ Failed") + " in ${r.elapsedMs} ms"
@@ -238,5 +244,13 @@ class IdeViewModel(app: Application) : AndroidViewModel(app) {
         var idx = 0
         repeat(line - 1) { val n = t.indexOf('\n', idx); if (n >= 0) idx = n + 1 }
         editor = editor.copy(selection = TextRange(idx))
+    }
+
+    fun runWithTrace() { wantTrace = true; run() }
+
+    fun installPackage(name: String) {
+        if (pipBusy) return
+        pipBusy = true; pipLog = "Downloading…"
+        viewModelScope.launch { pipLog = PythonEngine.pip(name.trim(), repo.path); pipBusy = false }
     }
 }
