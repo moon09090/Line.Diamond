@@ -22,16 +22,16 @@ private val mono = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 14.sp
 
 @Composable
 fun CodeEditor(value: TextFieldValue, errorLine: Int, fontSize: Int, onChange: (TextFieldValue) -> Unit, modifier: Modifier = Modifier) {
-    val m = m.copy(fontSize = fontSize.sp, lineHeight = (fontSize + 6).sp)
+    val m = mono.copy(fontSize = fontSize.sp, lineHeight = (fontSize + 6).sp)
     val lines = value.text.count { it == '\n' } + 1
-    Row(modifier.background(LineColors.Obsidian).verticalScroll(rememberScrollState())) {
+    Row(modifier.verticalScroll(rememberScrollState())) {
         Text(
             (1..lines).joinToString("\n") { if (it == errorLine) "●$it" else "$it" },
             style = m.copy(color = if (errorLine > 0) LineColors.Error else LineColors.Muted, textAlign = TextAlign.End),
-            modifier = Modifier.background(LineColors.Midnight).padding(horizontal = 8.dp, vertical = 8.dp).widthIn(min = 36.dp)
+            modifier = Modifier.background(LineColors.Glass).padding(horizontal = 8.dp, vertical = 8.dp).widthIn(min = 36.dp)
         )
         BasicTextField(
-            value = value, onValueChange = onChange, softWrap = false,
+            value = value, onValueChange = onChange,
             textStyle = m.copy(color = LineColors.Ivory),
             cursorBrush = SolidColor(LineColors.Gold),
             visualTransformation = SyntaxHighlighter.transformation,

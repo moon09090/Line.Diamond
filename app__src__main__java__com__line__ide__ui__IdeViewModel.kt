@@ -57,6 +57,8 @@ class IdeViewModel(app: Application) : AndroidViewModel(app) {
     val tabs = mutableStateListOf<String>()
     val history = mutableStateListOf<String>()
     var aiQuestion by mutableStateOf("")
+    var showOutput by mutableStateOf(false)
+    var outTab by mutableStateOf(0)
     var fontSize by mutableStateOf(prefs.fontSize)
     var showFind by mutableStateOf(false)
     var findText by mutableStateOf("")
@@ -119,7 +121,7 @@ class IdeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun run() {
         if (running) return
-        save(); running = true; status = "Running…"; output = ""
+        save(); running = true; status = "Running…"; output = ""; showOutput = true; outTab = 0
         viewModelScope.launch {
             val dir = getApplication<Application>().cacheDir.resolve("plots").apply { deleteRecursively(); mkdirs() }
             val r = PythonEngine.run(editor.selection.let { if (it.collapsed) editor.text else editor.text.substring(it.min, it.max) }, stdin, prefs.timeout.toDouble(), dir.absolutePath)
