@@ -21,6 +21,9 @@ class SecurePrefs(context: Context) {
     var fontSize: Int
         get() = prefs.getInt("font", 14)
         set(v) = prefs.edit().putInt("font", v.coerceIn(10, 28)).apply()
+    var animate: Boolean
+        get() = prefs.getBoolean("anim", true)
+        set(v) = prefs.edit().putBoolean("anim", v).apply()
     var theme: Int
         get() = prefs.getInt("theme", 0)
         set(v) = prefs.edit().putInt("theme", v).apply()

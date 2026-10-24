@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -20,7 +21,7 @@ import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin
 
-enum class Fx { AURORA, FIRE, WATER, EARTH, AIR, LIGHTNING, ICE, FOREST, COSMOS, NONE }
+enum class Fx { AURORA, FIRE, WATER, EARTH, AIR, LIGHTNING, ICE, FOREST, COSMOS, SAKURA, MATRIX, NEON, LAVA, PRISM, NONE }
 
 private const val TAU = 6.2832f
 
@@ -38,7 +39,7 @@ fun ElementBackground(content: @Composable () -> Unit) {
         val p = LineColors.p
         drawRect(Brush.radialGradient(listOf(p.glow, Color.Transparent),
             center = Offset(size.width * (0.5f + 0.35f * sin(t * TAU)), size.height * 0.22f), radius = size.width * 1.2f))
-        when (p.fx) {
+        when (if (LineColors.animate) p.fx else Fx.NONE) {
             Fx.FIRE -> fire(t)
             Fx.WATER -> water(t)
             Fx.EARTH -> earth(t)
@@ -47,6 +48,11 @@ fun ElementBackground(content: @Composable () -> Unit) {
             Fx.ICE -> ice(t)
             Fx.FOREST -> forest(t)
             Fx.COSMOS -> cosmos(t)
+            Fx.SAKURA -> sakura(t)
+            Fx.MATRIX -> matrix(t)
+            Fx.NEON -> neon(t)
+            Fx.LAVA -> lava(t)
+            Fx.PRISM -> prism(t)
             else -> {}
         }
     }) { content() }
@@ -159,5 +165,67 @@ private fun DrawScope.cosmos(t: Float) {
         val sx = size.width * (0.3f + 0.6f * rnd(idx, 7)) - 160f * k
         val sy = size.height * 0.25f * rnd(idx, 8) + 90f * k
         drawLine(Color.White.copy(alpha = 1f - k), Offset(sx, sy), Offset(sx + 50f, sy - 28f), strokeWidth = 2.5f, cap = StrokeCap.Round)
+    }
+}
+
+private fun DrawScope.sakura(t: Float) {
+    for (i in 0 until 40) {
+        val life = (t * (2 + (rnd(i, 1) * 3).toInt()) + rnd(i, 2)) % 1f
+        val w = 7f + rnd(i, 4) * 7f
+        drawOval(Color(0xFFFF9EC4).copy(alpha = 0.7f),
+            Offset(size.width * rnd(i, 3) + sin(life * TAU * 2 + i) * 40f, size.height * (life * 1.1f - 0.05f)), Size(w, w * 0.6f))
+    }
+}
+
+private fun DrawScope.matrix(t: Float) {
+    val cols = 22
+    val cw = size.width / cols
+    for (c in 0 until cols) {
+        val head = (t * (3 + (rnd(c, 1) * 4).toInt()) + rnd(c, 2)) % 1f
+        for (k in 0 until 10) {
+            val y = size.height * head - k * 22f
+            if (y < 0f) continue
+            drawRect(Color(0xFF00FF66).copy(alpha = (1f - k / 10f) * 0.55f), Offset(c * cw + cw * 0.35f, y), Size(cw * 0.3f, 14f))
+        }
+    }
+}
+
+private fun DrawScope.neon(t: Float) {
+    val hz = size.height * 0.62f
+    drawCircle(Brush.verticalGradient(listOf(Color(0xFFFFD166), Color(0xFFFF2BD6)), startY = hz - size.width * 0.28f, endY = hz),
+        size.width * 0.22f, Offset(size.width / 2f, hz - size.width * 0.06f), alpha = 0.55f)
+    drawRect(LineColors.Obsidian, Offset(0f, hz), Size(size.width, size.height - hz))
+    for (k in 0 until 10) {
+        val f = ((k + t * 10f) % 10f) / 10f
+        val y = hz + (size.height - hz) * f * f
+        drawLine(Color(0xFFFF2BD6).copy(alpha = 0.15f + 0.3f * f), Offset(0f, y), Offset(size.width, y), strokeWidth = 1.5f)
+    }
+    for (j in -8..8) {
+        drawLine(Color(0xFF22D3EE).copy(alpha = 0.25f), Offset(size.width / 2f, hz),
+            Offset(size.width / 2f + j * size.width * 0.18f, size.height), strokeWidth = 1.2f)
+    }
+}
+
+private fun DrawScope.lava(t: Float) {
+    drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color(0x66FF3B00)), startY = size.height * 0.55f, endY = size.height))
+    for (i in 0 until 9) {
+        val life = (t * (1 + i % 2) + rnd(i, 2)) % 1f
+        val r = size.width * (0.12f + rnd(i, 4) * 0.12f)
+        val c = Offset(size.width * rnd(i, 3) + sin(life * TAU + i) * 30f, size.height * (1.15f - life * 1.3f))
+        drawCircle(Brush.radialGradient(listOf(Color(0xFFFF6A1F).copy(alpha = 0.35f), Color.Transparent), center = c, radius = r), r, c)
+    }
+}
+
+private fun DrawScope.prism(t: Float) {
+    val hues = listOf(Color(0xFFF472B6), Color(0xFF22D3EE), Color(0xFFA78BFA), Color(0xFF34D399), Color(0xFFFBBF24), Color(0xFF60A5FA))
+    for (i in hues.indices) {
+        val c = Offset(size.width * (0.5f + 0.38f * sin(t * TAU * (1 + i % 2) + i)),
+            size.height * (0.5f + 0.35f * cos(t * TAU * (1 + (i + 1) % 2) + i * 2)))
+        val r = size.width * 0.5f
+        drawCircle(Brush.radialGradient(listOf(hues[i].copy(alpha = 0.22f), Color.Transparent), center = c, radius = r), r, c)
+    }
+    for (i in 0 until 30) {
+        val a = 0.5f + 0.5f * sin(t * TAU * (2 + i % 4) + i)
+        drawCircle(Color.White.copy(alpha = a * 0.6f), 1.5f, Offset(size.width * rnd(i, 3), size.height * rnd(i, 5)))
     }
 }

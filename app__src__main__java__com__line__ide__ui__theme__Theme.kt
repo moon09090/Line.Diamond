@@ -21,12 +21,18 @@ val PALETTES = listOf(
     Palette("❄ Ice", true, Color(0xFF06121A), Color(0xFF0C1F2C), Color(0xFF67E8F9), Color(0xFFECFEFF), Color(0xFF6B93A1), Color(0x0DFFFFFF), Color(0xFF0E3A4D), Color(0xFFBAE6FD), Fx.ICE),
     Palette("🌿 Forest", true, Color(0xFF06100A), Color(0xFF0D1E14), Color(0xFF86EFAC), Color(0xFFEAFBEF), Color(0xFF6B9B7C), Color(0x0DFFFFFF), Color(0xFF0F3A22), Color(0xFFBEF264), Fx.FOREST),
     Palette("🌌 Cosmos", true, Color(0xFF05030F), Color(0xFF0E0A22), Color(0xFFC4B5FD), Color(0xFFEEE9FF), Color(0xFF7F77AA), Color(0x0DFFFFFF), Color(0xFF1E1250), Color(0xFFF0ABFC), Fx.COSMOS),
+    Palette("🌸 Sakura", true, Color(0xFF140A12), Color(0xFF22101C), Color(0xFFFF9EC4), Color(0xFFFFEAF2), Color(0xFFA17A8C), Color(0x0DFFFFFF), Color(0xFF4A1633), Color(0xFFFFC2DD), Fx.SAKURA),
+    Palette("💻 Matrix", true, Color(0xFF010A03), Color(0xFF06160A), Color(0xFF00FF66), Color(0xFFD6FFE3), Color(0xFF3F8F5F), Color(0x0DFFFFFF), Color(0xFF03361A), Color(0xFF7CFFB2), Fx.MATRIX),
+    Palette("🌆 Neon", true, Color(0xFF0A0420), Color(0xFF150838), Color(0xFFFF2BD6), Color(0xFFFDEBFF), Color(0xFF8A6FB5), Color(0x0DFFFFFF), Color(0xFF3B0A66), Color(0xFF22D3EE), Fx.NEON),
+    Palette("🌋 Lava", true, Color(0xFF100503), Color(0xFF1C0A06), Color(0xFFFF5A1F), Color(0xFFFFE9DD), Color(0xFFA0603F), Color(0x0DFFFFFF), Color(0xFF6B1505), Color(0xFFFFB020), Fx.LAVA),
+    Palette("🌈 Prism", true, Color(0xFF07070E), Color(0xFF11111F), Color(0xFF22D3EE), Color(0xFFF5F5FF), Color(0xFF7F83A8), Color(0x0DFFFFFF), Color(0xFF1A1A3A), Color(0xFFF472B6), Fx.PRISM),
     Palette("Dracula", true, Color(0xFF282A36), Color(0xFF343746), Color(0xFFBD93F9), Color(0xFFF8F8F2), Color(0xFF6272A4), Color(0x14FFFFFF), Color(0xFF44475A), Color(0xFFFF79C6), Fx.AURORA),
     Palette("Ivory Light", false, Color(0xFFFAF7F0), Color(0xFFEDE6D6), Color(0xFF9A6B00), Color(0xFF1B1F2A), Color(0xFF7A7F8E), Color(0x14000000), Color(0xFFFFFFFF), Color(0xFF6D3FD6), Fx.NONE)
 )
 
 object LineColors {
     var p by mutableStateOf(PALETTES[0])
+    var animate by mutableStateOf(true)
     val Obsidian get() = p.obsidian
     val Midnight get() = p.midnight
     val Gold get() = p.gold

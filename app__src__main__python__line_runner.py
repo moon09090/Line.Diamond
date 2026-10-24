@@ -13,6 +13,31 @@ def _stop_thread(t: threading.Thread) -> None:
             ctypes.c_ulong(t.ident), ctypes.py_object(SystemExit))
 
 
+def _make_input(waited):
+    """input(): use pre-filled stdin lines first, otherwise ask the user through the app dialog."""
+    try:
+        from java import jclass
+        bridge = jclass("com.line.ide.core.InputBridge")
+    except Exception:
+        bridge = None
+
+    def _input(prompt=""):
+        sys.stdout.write(str(prompt))
+        sys.stdout.flush()
+        line = sys.stdin.readline()
+        if line != "":
+            ans = line.rstrip("\n")
+        elif bridge is None:
+            raise EOFError("EOF when reading a line")
+        else:
+            t0 = time.perf_counter()
+            ans = str(bridge.request(str(prompt)))
+            waited[0] += time.perf_counter() - t0
+        sys.stdout.write(ans + "\n")
+        return ans
+    return _input
+
+
 def _save_plots(plot_dir: str) -> list:
     paths = []
     plt = sys.modules.get("matplotlib.pyplot")
@@ -30,7 +55,9 @@ def _save_plots(plot_dir: str) -> list:
 def run(code: str, stdin_text: str = "", timeout: float = 30.0, plot_dir: str = "") -> str:
     out, err = io.StringIO(), io.StringIO()
     res = {"stdout": "", "stderr": "", "elapsed_ms": 0, "ok": True, "timed_out": False, "plots": []}
+    waited = [0.0]
     ns = {"__name__": "__main__", "__file__": "main.py"}
+    ns["input"] = _make_input(waited)
 
     def target():
         try:
@@ -54,7 +81,8 @@ def run(code: str, stdin_text: str = "", timeout: float = 30.0, plot_dir: str = 
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             t = threading.Thread(target=target, daemon=True)
             t.start()
-            t.join(timeout)
+            while t.is_alive() and (time.perf_counter() - start - waited[0]) < timeout:
+                t.join(0.1)
             if t.is_alive():
                 res["timed_out"] = True
                 res["ok"] = False

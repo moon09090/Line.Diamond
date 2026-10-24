@@ -15,6 +15,7 @@ object PythonEngine {
 
     suspend fun run(code: String, stdin: String, timeoutSec: Double, plotDir: String): RunResult =
         withContext(Dispatchers.IO) {
+            InputBridge.reset()
             val j = JSONObject(module.callAttr("run", code, stdin, timeoutSec, plotDir).toString())
             val p = j.getJSONArray("plots")
             RunResult(j.getString("stdout"), j.getString("stderr"), j.getInt("elapsed_ms"),

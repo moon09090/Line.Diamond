@@ -22,6 +22,8 @@ val TEMPLATES = mapOf(
     "Hello" to "name = input(\"Your name: \") or \"World\"\nprint(f\"Hello, {name}!\")\n",
     "Data (pandas)" to "import pandas as pd\n\ndf = pd.DataFrame({\"x\": range(5), \"y\": [i**2 for i in range(5)]})\nprint(df.describe())\n",
     "Math (sympy)" to "from sympy import symbols, diff, integrate, sin\n\nx = symbols('x')\nprint(diff(x**3 * sin(x), x))\nprint(integrate(x**2, x))\n",
+    "Operators demo" to "a, b = 7, 3\nprint(\"a == b:\", a == b)\nprint(\"a != b:\", a != b)\nprint(\"a > b:\", a > b)\nprint(\"a < b:\", a < b)\nprint(\"a >= b:\", a >= b)\nprint(\"a <= b:\", a <= b)\nprint(\"chained 1 < b < a:\", 1 < b < a)\n",
+    "Calculator" to "a = float(input(\"First number: \"))\nop = input(\"Operator (+ - * /): \")\nb = float(input(\"Second number: \"))\nops = {\"+\": a + b, \"-\": a - b, \"*\": a * b, \"/\": a / b if b else \"n/a\"}\nprint(\"Result:\", ops.get(op, \"unknown operator\"))\n",
     "Classes (OOP)" to "class Animal:\n    def __init__(self, name):\n        self.name = name\n\n    def speak(self):\n        return f\"{self.name} makes a sound\"\n\nclass Dog(Animal):\n    def speak(self):\n        return f\"{self.name} says Woof!\"\n\nprint(Dog(\"Rex\").speak())\n",
     "Algorithms" to "def fib(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a\n\nprint([fib(i) for i in range(15)])\n",
     "Plot (matplotlib)" to "import matplotlib.pyplot as plt\nimport numpy as np\n\nx = np.linspace(0, 10, 200)\nplt.plot(x, np.sin(x), label=\"sin\")\nplt.legend()\nplt.show()\n",
@@ -58,6 +60,8 @@ class IdeViewModel(app: Application) : AndroidViewModel(app) {
     val history = mutableStateListOf<String>()
     var aiQuestion by mutableStateOf("")
     var showOutput by mutableStateOf(false)
+    var inputPrompt by mutableStateOf<String?>(null)
+    var inputSeq by mutableStateOf(0)
     var outTab by mutableStateOf(0)
     var fontSize by mutableStateOf(prefs.fontSize)
     var showFind by mutableStateOf(false)
@@ -69,7 +73,9 @@ class IdeViewModel(app: Application) : AndroidViewModel(app) {
     private var saveJob: Job? = null
 
     init {
+        InputBridge.onPrompt = { p -> inputSeq += 1; inputPrompt = p }
         LineColors.p = PALETTES.getOrElse(prefs.theme) { PALETTES[0] }
+        LineColors.animate = prefs.animate
         if (repo.list().isEmpty()) repo.save("main.py", TEMPLATES.getValue("Hello"))
         refresh(); open(repo.list().first())
     }
@@ -177,6 +183,8 @@ class IdeViewModel(app: Application) : AndroidViewModel(app) {
         onEdit(TextFieldValue(editor.text.replace(findText, replaceText, ignoreCase = true)))
         status = "Replaced $n"
     }
+
+    fun submitInput(s: String) { inputPrompt = null; InputBridge.answer(s) }
 
     fun closeTab(t: String) { if (tabs.size > 1) { tabs.remove(t); if (t == current) open(tabs.last()) } }
     fun tidy() { viewModelScope.launch { onEdit(TextFieldValue(PythonEngine.tidy(editor.text))); status = "Code tidied" } }

@@ -141,6 +141,18 @@ fun IdeScreen(vm: IdeViewModel) {
                 }
                 CodeEditor(vm.editor, vm.errorLine, vm.fontSize, vm::onEdit,
                     Modifier.weight(1f).fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp).glass())
+                val cur = vm.editor.selection.start.coerceIn(0, vm.editor.text.length)
+                val ln = vm.editor.text.substring(0, cur).count { it == '\n' } + 1
+                val col = cur - vm.editor.text.substring(0, cur).lastIndexOf('\n')
+                Text("Ln $ln, Col $col  ·  ${vm.editor.text.count { it == '\n' } + 1} lines  ·  ${vm.editor.text.length} chars",
+                    Modifier.padding(horizontal = 14.dp), color = LineColors.Muted, fontSize = 11.sp)
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp)) {
+                    listOf(" == ", " != ", " < ", " > ", " <= ", " >= ", " + ", " - ", " * ", " / ", " // ", " % ", " ** ",
+                        " and ", " or ", " not ", " in ", " is ").forEach { k ->
+                        TextButton({ vm.insert(k) }, contentPadding = PaddingValues(horizontal = 9.dp)) {
+                            Text(k.trim(), color = LineColors.Violet, fontFamily = FontFamily.Monospace) }
+                    }
+                }
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(4.dp)) {
                     vm.suggestions().forEach { w ->
                         AssistChip({ vm.accept(w) }, { Text(w, fontFamily = FontFamily.Monospace) }, Modifier.padding(horizontal = 2.dp))
@@ -232,6 +244,15 @@ fun IdeScreen(vm: IdeViewModel) {
             } })
     }
 
+    vm.inputPrompt?.let { prompt ->
+        var text by remember(vm.inputSeq) { mutableStateOf("") }
+        AlertDialog({ vm.submitInput("") },
+            confirmButton = { TextButton({ vm.submitInput(text) }) { Text("Enter") } },
+            title = { Text("Input") },
+            text = { OutlinedTextField(text, { text = it }, singleLine = true,
+                label = { Text(prompt.ifBlank { "Type your input" }) }) })
+    }
+
     if (showThemes) AlertDialog({ showThemes = false },
         confirmButton = { TextButton({ showThemes = false }) { Text("Done") } },
         title = { Text("Themes") },
@@ -262,6 +283,10 @@ fun IdeScreen(vm: IdeViewModel) {
                 OutlinedTextField(to, { to = it.filter(Char::isDigit) }, label = { Text("Run timeout (seconds)") }, singleLine = true)
                 OutlinedTextField(fs, { fs = it.filter(Char::isDigit) }, label = { Text("Editor font size (10-28)") }, singleLine = true)
                 TextButton({ showSettings = false; showThemes = true }) { Text("Choose theme…") }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Animated background", Modifier.weight(1f))
+                    Switch(LineColors.animate, { LineColors.animate = it; vm.prefs.animate = it })
+                }
             } })
     }
 }

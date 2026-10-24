@@ -16,7 +16,7 @@ object SyntaxHighlighter {
 
     private val rx = Regex(
         "(?<c>#[^\\n]*)|(?<s>\"\"\"[\\s\\S]*?(\"\"\"|\\z)|'''[\\s\\S]*?('''|\\z)|\"(\\\\.|[^\"\\\\\\n])*\"?|'(\\\\.|[^'\\\\\\n])*'?)" +
-            "|(?<d>@\\w+)|(?<n>\\b\\d+(\\.\\d+)?\\b)|(?<w>\\b[A-Za-z_]\\w*\\b)"
+            "|(?<d>@\\w+)|(?<n>\\b\\d+(\\.\\d+)?\\b)|(?<o>[=!<>]=|\\*\\*|//|[-+*/%<>=])|(?<w>\\b[A-Za-z_]\\w*\\b)"
     )
 
     fun highlight(src: String): AnnotatedString = buildAnnotatedString {
@@ -28,6 +28,7 @@ object SyntaxHighlighter {
                 g["s"] != null -> SpanStyle(color = Color(0xFF6BE3A0))
                 g["d"] != null -> SpanStyle(color = Color(0xFFC792EA))
                 g["n"] != null -> SpanStyle(color = Color(0xFFF78C6C))
+                g["o"] != null -> SpanStyle(color = Color(0xFFFF79C6))
                 m.value in keywords -> SpanStyle(color = Color(0xFFF5C04A), fontWeight = FontWeight.Bold)
                 m.value in builtins -> SpanStyle(color = Color(0xFF82AAFF))
                 else -> null
