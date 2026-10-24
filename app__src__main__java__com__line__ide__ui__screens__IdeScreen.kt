@@ -49,7 +49,7 @@ import com.line.ide.ui.theme.PALETTES
 private fun Modifier.glass(): Modifier = this
     .clip(RoundedCornerShape(14.dp))
     .background(LineColors.Glass)
-    .border(1.dp, LineColors.Gold.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+    .border(1.dp, Brush.linearGradient(listOf(LineColors.Gold.copy(alpha = 0.45f), LineColors.Violet.copy(alpha = 0.45f))), RoundedCornerShape(14.dp))
 
 @Composable
 private fun AuroraBackground(content: @Composable () -> Unit) {
@@ -88,6 +88,7 @@ fun IdeScreen(vm: IdeViewModel) {
     var showNew by remember { mutableStateOf(false) }
     var menu by remember { mutableStateOf(false) }
     var showThemes by remember { mutableStateOf(false) }
+    var showOutline by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     val clip = LocalClipboardManager.current
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -112,6 +113,9 @@ fun IdeScreen(vm: IdeViewModel) {
                                 listOf<Pair<String, () -> Unit>>("Undo" to { vm.undo() }, "Redo" to { vm.redo() },
                                     "Find & replace" to { vm.showFind = !vm.showFind }, "Tidy code" to { vm.tidy() },
                                     "Toggle comment" to { vm.toggleComment() },
+                                    "Duplicate line" to { vm.duplicateLine() },
+                                    "Delete line" to { vm.deleteLine() },
+                                    "Outline (jump to def)" to { showOutline = true },
                                     "Clear output" to { vm.output = ""; vm.plots.clear() },
                                     "Copy output" to { clip.setText(AnnotatedString(vm.output)) },
                                     "Themes" to { showThemes = true },
@@ -252,6 +256,18 @@ fun IdeScreen(vm: IdeViewModel) {
             text = { OutlinedTextField(text, { text = it }, singleLine = true,
                 label = { Text(prompt.ifBlank { "Type your input" }) }) })
     }
+
+    if (showOutline) AlertDialog({ showOutline = false },
+        confirmButton = { TextButton({ showOutline = false }) { Text("Close") } },
+        title = { Text("Outline") },
+        text = { Column(Modifier.verticalScroll(rememberScrollState())) {
+            val items = vm.outline()
+            if (items.isEmpty()) Text("No functions or classes yet.", color = LineColors.Muted)
+            items.forEach { (ln, name) ->
+                Text("$ln   $name", Modifier.fillMaxWidth().clickable { vm.jumpTo(ln); showOutline = false }.padding(vertical = 10.dp),
+                    color = LineColors.Ivory, fontFamily = FontFamily.Monospace, fontSize = 13.sp)
+            }
+        } })
 
     if (showThemes) AlertDialog({ showThemes = false },
         confirmButton = { TextButton({ showThemes = false }) { Text("Done") } },

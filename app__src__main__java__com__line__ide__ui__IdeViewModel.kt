@@ -112,6 +112,14 @@ class IdeViewModel(app: Application) : AndroidViewModel(app) {
                 v = TextFieldValue(n.text.substring(0, i + 1) + ind + n.text.substring(i + 1), TextRange(i + 1 + ind.length))
             }
         }
+        if (v === n && n.text.length == o.text.length + 1 && n.selection.collapsed && n.selection.start >= 1) {   // auto-close brackets
+            val i = n.selection.start - 1
+            val ch = n.text[i]
+            val close = when (ch) { '(' -> ")"; '[' -> "]"; '{' -> "}"; '"' -> "\""; '\'' -> "'"; else -> "" }
+            val afterWord = i > 0 && n.text[i - 1].isLetterOrDigit()
+            if (close.isNotEmpty() && !((ch == '"' || ch == '\'') && afterWord))
+                v = TextFieldValue(n.text.substring(0, i + 1) + close + n.text.substring(i + 1), TextRange(i + 1))
+        }
         editor = v
         checkJob?.cancel()
         checkJob = viewModelScope.launch { delay(500); errorLine = PythonEngine.check(editor.text)?.line ?: 0 }
@@ -201,5 +209,34 @@ class IdeViewModel(app: Application) : AndroidViewModel(app) {
             if (l.isBlank()) l else if (allCommented) l.replaceFirst(Regex("# ?"), "") else "# $l"
         }
         onEdit(TextFieldValue(t.replaceRange(s, e, out), TextRange(s, s + out.length)))
+    }
+
+    fun duplicateLine() {
+        val t = editor.text; val c = editor.selection.start.coerceIn(0, t.length)
+        val s = t.lastIndexOf('\n', c - 1) + 1
+        val e = t.indexOf('\n', c).let { if (it < 0) t.length else it }
+        val line = t.substring(s, e)
+        onEdit(TextFieldValue(t.substring(0, e) + "\n" + line + t.substring(e), TextRange(c + line.length + 1)))
+    }
+
+    fun deleteLine() {
+        val t = editor.text; val c = editor.selection.start.coerceIn(0, t.length)
+        val s = t.lastIndexOf('\n', c - 1) + 1
+        val e = t.indexOf('\n', c).let { if (it < 0) t.length else it }
+        val from = if (e >= t.length && s > 0) s - 1 else s
+        val to = if (e < t.length) e + 1 else e
+        val nt = t.removeRange(from, to)
+        onEdit(TextFieldValue(nt, TextRange(from.coerceIn(0, nt.length))))
+    }
+
+    fun outline(): List<Pair<Int, String>> = editor.text.lines().mapIndexedNotNull { i, l ->
+        if (Regex("^\\s*(def|class)\\s+\\w+").containsMatchIn(l)) (i + 1) to l.trim().removeSuffix(":") else null
+    }
+
+    fun jumpTo(line: Int) {
+        val t = editor.text
+        var idx = 0
+        repeat(line - 1) { val n = t.indexOf('\n', idx); if (n >= 0) idx = n + 1 }
+        editor = editor.copy(selection = TextRange(idx))
     }
 }

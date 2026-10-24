@@ -26,6 +26,13 @@ val PALETTES = listOf(
     Palette("🌆 Neon", true, Color(0xFF0A0420), Color(0xFF150838), Color(0xFFFF2BD6), Color(0xFFFDEBFF), Color(0xFF8A6FB5), Color(0x0DFFFFFF), Color(0xFF3B0A66), Color(0xFF22D3EE), Fx.NEON),
     Palette("🌋 Lava", true, Color(0xFF100503), Color(0xFF1C0A06), Color(0xFFFF5A1F), Color(0xFFFFE9DD), Color(0xFFA0603F), Color(0x0DFFFFFF), Color(0xFF6B1505), Color(0xFFFFB020), Fx.LAVA),
     Palette("🌈 Prism", true, Color(0xFF07070E), Color(0xFF11111F), Color(0xFF22D3EE), Color(0xFFF5F5FF), Color(0xFF7F83A8), Color(0x0DFFFFFF), Color(0xFF1A1A3A), Color(0xFFF472B6), Fx.PRISM),
+    Palette("🌼 Flowers", true, Color(0xFF130A14), Color(0xFF20112A), Color(0xFFFF8FB8), Color(0xFFFFF0F6), Color(0xFFA8809A), Color(0x0DFFFFFF), Color(0xFF4A1A3F), Color(0xFFFFD166), Fx.FLOWERS),
+    Palette("🍃 Leaf", true, Color(0xFF07120A), Color(0xFF0E2014), Color(0xFF84CC16), Color(0xFFF0FFE6), Color(0xFF6E9A62), Color(0x0DFFFFFF), Color(0xFF17401F), Color(0xFFF59E0B), Fx.LEAF),
+    Palette("💧 Droplets", true, Color(0xFF04101A), Color(0xFF0A1E30), Color(0xFF7DD3FC), Color(0xFFEAF8FF), Color(0xFF6A92AD), Color(0x0DFFFFFF), Color(0xFF0C3B5E), Color(0xFF5EEAD4), Fx.DROPLETS),
+    Palette("☁ Sky", true, Color(0xFF0B1D3A), Color(0xFF15264A), Color(0xFFFFB86B), Color(0xFFFFF4E6), Color(0xFF8C9BC0), Color(0x0DFFFFFF), Color(0xFF3B2A6B), Color(0xFFFF9EC4), Fx.SKY),
+    Palette("🌙 Moon", true, Color(0xFF05060F), Color(0xFF0D1124), Color(0xFFFFF3C4), Color(0xFFF5F3E8), Color(0xFF8A8DA8), Color(0x0DFFFFFF), Color(0xFF1B2250), Color(0xFFA5B4FC), Fx.MOON),
+    Palette("🐱 Cartoon", true, Color(0xFF1A1030), Color(0xFF271848), Color(0xFFFFB86B), Color(0xFFFFF5E1), Color(0xFFB39DDB), Color(0x0DFFFFFF), Color(0xFF5B2A8A), Color(0xFFFF9EC4), Fx.CARTOON),
+    Palette("🦋 Butterfly", true, Color(0xFF0A0818), Color(0xFF15112B), Color(0xFFF472B6), Color(0xFFFFEFF8), Color(0xFF9A8DBF), Color(0x0DFFFFFF), Color(0xFF34195E), Color(0xFF60A5FA), Fx.BUTTERFLY),
     Palette("Dracula", true, Color(0xFF282A36), Color(0xFF343746), Color(0xFFBD93F9), Color(0xFFF8F8F2), Color(0xFF6272A4), Color(0x14FFFFFF), Color(0xFF44475A), Color(0xFFFF79C6), Fx.AURORA),
     Palette("Ivory Light", false, Color(0xFFFAF7F0), Color(0xFFEDE6D6), Color(0xFF9A6B00), Color(0xFF1B1F2A), Color(0xFF7A7F8E), Color(0x14000000), Color(0xFFFFFFFF), Color(0xFF6D3FD6), Fx.NONE)
 )
