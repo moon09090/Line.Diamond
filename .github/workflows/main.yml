@@ -1,0 +1,30 @@
+name: Build Line
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild folders
+        run: |
+          mkdir -p Line
+          for f in *__*; do
+            [ -f "$f" ] || continue
+            d="Line/$(echo "$f" | sed 's|__|/|g')"
+            mkdir -p "$(dirname "$d")"
+            cp "$f" "$d"
+          done
+          cp build.gradle.kts settings.gradle.kts gradle.properties Line/
+          cp LICENSE README.md Line/ 2>/dev/null || true
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "8.9" }
+      - run: gradle assembleDebug --no-daemon
+        working-directory: Line
+      - uses: actions/upload-artifact@v4
+        with:
+          name: line-debug-apk
+          path: Line/app/build/outputs/apk/debug/*.apk
