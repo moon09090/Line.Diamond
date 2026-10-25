@@ -125,16 +125,16 @@ fun IdeScreen(vm: IdeViewModel) {
     var snipTick by remember { mutableStateOf(0) }
     var tipText by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(vm.cycle) { while (vm.cycle) { kotlinx.coroutines.delay(15000); vm.randomTheme() } }
+    val ctx = LocalContext.current
+    val clip = LocalClipboardManager.current
+    val shareText: (String) -> Unit = { txt ->
+        ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, txt), "Share"))
+    }
     LaunchedEffect(vm.keepAwake) {
         (ctx as? android.app.Activity)?.window?.let { w ->
             val flag = android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
             if (vm.keepAwake) w.addFlags(flag) else w.clearFlags(flag)
         }
-    }
-    val ctx = LocalContext.current
-    val clip = LocalClipboardManager.current
-    val shareText: (String) -> Unit = { txt ->
-        ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, txt), "Share"))
     }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { vm.importCode(it.lastPathSegment?.substringAfterLast('/') ?: "imported.py",
