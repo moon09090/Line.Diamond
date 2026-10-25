@@ -73,3 +73,11 @@ fun LineTheme(content: @Composable () -> Unit) {
         content = content
     )
 }
+
+fun Palette.category(): String = when (fx) {
+    Fx.COSMOS, Fx.SOLAR, Fx.GALAXY, Fx.EARTH_GLOBE, Fx.SUN, Fx.ECLIPSE, Fx.METEORS, Fx.SATURN, Fx.NEBULA,
+    Fx.WARP, Fx.COMET, Fx.STARDUST, Fx.SPIRAL -> "Space"
+    Fx.FIRE, Fx.WATER, Fx.EARTH, Fx.FOREST, Fx.FLOWERS, Fx.LEAF, Fx.DROPLETS, Fx.BUTTERFLY, Fx.SAKURA, Fx.CHERRY -> "Nature"
+    Fx.AIR, Fx.LIGHTNING, Fx.ICE, Fx.SKY, Fx.MOON, Fx.AURORA, Fx.LAVA -> "Weather"
+    else -> "Neon & Fun"
+}

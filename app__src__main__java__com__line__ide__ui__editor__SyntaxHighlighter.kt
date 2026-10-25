@@ -1,6 +1,7 @@
 package com.line.ide.ui.editor
 
 import androidx.compose.ui.graphics.Color
+import com.line.ide.ui.theme.LineColors
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -24,12 +25,12 @@ object SyntaxHighlighter {
         for (m in rx.findAll(src)) {
             val g = m.groups as MatchNamedGroupCollection
             val style = when {
-                g["c"] != null -> SpanStyle(color = Color(0xFF6C7691))
-                g["s"] != null -> SpanStyle(color = Color(0xFF6BE3A0))
-                g["d"] != null -> SpanStyle(color = Color(0xFFC792EA))
+                g["c"] != null -> SpanStyle(color = LineColors.Muted)
+                g["s"] != null -> SpanStyle(color = LineColors.Ok)
+                g["d"] != null -> SpanStyle(color = LineColors.Violet)
                 g["n"] != null -> SpanStyle(color = Color(0xFFF78C6C))
                 g["o"] != null -> SpanStyle(color = Color(0xFFFF79C6))
-                m.value in keywords -> SpanStyle(color = Color(0xFFF5C04A), fontWeight = FontWeight.Bold)
+                m.value in keywords -> SpanStyle(color = LineColors.Gold, fontWeight = FontWeight.Bold)
                 m.value in builtins -> SpanStyle(color = Color(0xFF82AAFF))
                 else -> null
             }

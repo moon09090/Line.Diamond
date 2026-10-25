@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
+import com.line.ide.ui.theme.category
 import androidx.compose.foundation.Image
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
@@ -73,10 +74,53 @@ private fun InfoDialog(title: String, body: String, onClose: () -> Unit) = Alert
         SelectionContainer { Text(body, fontFamily = FontFamily.Monospace, fontSize = 13.sp) } } })
 
 @Composable
-private fun LineLogo() {
+private fun Splash() {
+    Box(Modifier.fillMaxSize().background(LineColors.Obsidian), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            LineLogo(96.dp)
+            Spacer(Modifier.height(16.dp))
+            Text("Line", color = LineColors.Gold, fontSize = 30.sp, fontWeight = FontWeight.Light, letterSpacing = 6.sp)
+            Text("Python, beautifully.", color = LineColors.Muted, fontSize = 13.sp)
+        }
+    }
+}
+
+@Composable
+private fun Mascot(mood: Int) {
+    val tr = rememberInfiniteTransition(label = "mascot")
+    val bob by tr.animateFloat(0f, 1f, infiniteRepeatable(tween(if (mood == 1) 500 else 1800, easing = LinearEasing), RepeatMode.Reverse), label = "bob")
+    Canvas(Modifier.size(30.dp)) {
+        val c = Offset(size.width / 2f, size.height / 2f + (bob - 0.5f) * 4f)
+        val r = size.minDimension * 0.4f
+        val ink = Color(0xFF1A1405)
+        drawCircle(LineColors.Gold, r, c)
+        drawCircle(ink, 2.2f, Offset(c.x - r * 0.35f, c.y - r * 0.15f))
+        drawCircle(ink, 2.2f, Offset(c.x + r * 0.35f, c.y - r * 0.15f))
+        drawArc(ink, if (mood == 2) 200f else 20f, 140f, false,
+            Offset(c.x - r * 0.4f, c.y + (if (mood == 2) r * 0.15f else -r * 0.05f)), Size(r * 0.8f, r * 0.6f),
+            style = Stroke(2f, cap = StrokeCap.Round))
+    }
+}
+
+@Composable
+private fun SparkleBurst(trigger: Int) {
+    val p = remember { Animatable(1f) }
+    LaunchedEffect(trigger) { if (trigger > 0) { p.snapTo(0f); p.animateTo(1f, tween(800)) } }
+    Canvas(Modifier.fillMaxSize()) {
+        if (p.value < 1f) for (i in 0 until 16) {
+            val ang = i * 6.2832f / 16f
+            val d = p.value * size.width * 0.35f
+            drawCircle((if (i % 2 == 0) LineColors.Gold else LineColors.Violet).copy(alpha = 1f - p.value), 5f * (1f - p.value) + 1f,
+                Offset(size.width * 0.82f + kotlin.math.cos(ang) * d, size.height * 0.08f + kotlin.math.sin(ang) * d))
+        }
+    }
+}
+
+@Composable
+private fun LineLogo(logoSize: androidx.compose.ui.unit.Dp = 30.dp) {
     val tr = rememberInfiniteTransition(label = "logo")
     val a by tr.animateFloat(0f, 360f, infiniteRepeatable(tween(4000, easing = LinearEasing)), label = "a")
-    Canvas(Modifier.size(30.dp)) {
+    Canvas(Modifier.size(logoSize)) {
         val c = center
         val r = size.minDimension / 2f - 3f
         drawCircle(LineColors.Gold.copy(alpha = 0.35f), r, c, style = Stroke(2f))
@@ -124,6 +168,13 @@ fun IdeScreen(vm: IdeViewModel) {
     var showSnips by remember { mutableStateOf(false) }
     var snipTick by remember { mutableStateOf(0) }
     var tipText by remember { mutableStateOf<String?>(null) }
+    var themeCat by remember { mutableStateOf("All") }
+    var splash by remember { mutableStateOf(true) }
+    var tour by remember { mutableStateOf(if (vm.prefs.onboarded) -1 else 0) }
+    var challengeText by remember { mutableStateOf<String?>(null) }
+    var showLessons by remember { mutableStateOf(false) }
+    var lessonIdx by remember { mutableStateOf(-1) }
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(1600); splash = false }
     LaunchedEffect(vm.cycle) { while (vm.cycle) { kotlinx.coroutines.delay(15000); vm.randomTheme() } }
     val ctx = LocalContext.current
     val clip = LocalClipboardManager.current
@@ -142,6 +193,7 @@ fun IdeScreen(vm: IdeViewModel) {
     }
 
     ElementBackground {
+        Box(Modifier.fillMaxSize()) {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
@@ -156,26 +208,27 @@ fun IdeScreen(vm: IdeViewModel) {
                     } },
                     navigationIcon = { IconButton({ showFiles = true }) { Icon(Icons.Default.Folder, null, tint = LineColors.Gold) } },
                     actions = {
+                        Mascot(if (vm.running) 1 else if (vm.isError) 2 else 0)
                         TextButton({ vm.showOutput = true }) { Text("Console", color = LineColors.Violet) }
                         Box { IconButton({ menu = true }) { Icon(Icons.Default.MoreVert, "More", tint = LineColors.Muted) }
                             DropdownMenu(menu, { menu = false }) {
                                 listOf<Pair<String, (() -> Unit)?>>(
-                                    "EDIT" to null,
+                                    "✏️ EDIT" to null,
                                     "Undo" to { vm.undo() }, "Redo" to { vm.redo() }, "Select all" to { vm.selectAll() },
                                     "Find & replace" to { vm.showFind = !vm.showFind },
                                     "Toggle comment" to { vm.toggleComment() }, "Indent" to { vm.indent() }, "Dedent" to { vm.dedent() },
                                     "Move line up" to { vm.moveUp() }, "Move line down" to { vm.moveDown() },
                                     "Duplicate line" to { vm.duplicateLine() }, "Delete line" to { vm.deleteLine() },
-                                    "TRANSFORM" to null,
+                                    "🔧 TRANSFORM" to null,
                                     "UPPERCASE selection" to { vm.upper() }, "lowercase selection" to { vm.lower() },
                                     "Sort lines" to { vm.sortLines() }, "Remove blank lines" to { vm.removeBlankLines() },
                                     "Wrap selection in print()" to { vm.wrapPrint() },
                                     "Tidy code" to { vm.tidy() }, "Add file header" to { vm.addHeader() },
-                                    "CODE TOOLS" to null,
+                                    "🧰 CODE TOOLS" to null,
                                     "Add import…" to { showImport = true }, "Outline (jump to def)" to { showOutline = true },
                                     "Lint (PEP 8 check)" to { showLint = true }, "Code statistics" to { showStats = true },
                                     "Install package (pip)" to { showPip = true },
-                                    "RUN & DEBUG" to null,
+                                    "▶ RUN & DEBUG" to null,
                                     "Run with trace" to { vm.runWithTrace() },
                                     "Toggle breakpoint (this line)" to { vm.toggleBreakpoint() },
                                     "Clear breakpoints" to { vm.breakpoints.clear() },
@@ -183,19 +236,30 @@ fun IdeScreen(vm: IdeViewModel) {
                                     "Clear output" to { vm.output = ""; vm.plots.clear() },
                                     "Copy output" to { clip.setText(AnnotatedString(vm.output)) },
                                     "Share output" to { shareText(vm.output) },
-                                    "FILES & SNIPPETS" to null,
+                                    "📁 FILES & SNIPPETS" to null,
                                     "Rename file" to { showRename = true }, "Duplicate file" to { vm.duplicateFile() },
                                     "Copy all code" to { clip.setText(AnnotatedString(vm.editor.text)) },
                                     "Share code" to { shareText(vm.editor.text) },
+                                    "Share code as image" to {
+                                        val uri = com.line.ide.core.CodeImage.save(ctx, vm.current, vm.editor.text)
+                                        if (uri == null) { vm.status = "Image export needs Android 10 or newer" }
+                                        else {
+                                            ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("image/png")
+                                                .putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), "Share image"))
+                                        }
+                                    },
                                     "My snippets…" to { showSnips = true },
                                     "Save selection as snippet" to { vm.saveSnippet() },
-                                    "VIEW & FUN" to null,
+                                    "🎨 VIEW & FUN" to null,
                                     "Themes" to { showThemes = true }, "Random theme" to { vm.randomTheme() },
                                     "Theme slideshow: ${if (vm.cycle) "ON" else "OFF"}" to { vm.cycle = !vm.cycle },
                                     "Font bigger" to { vm.zoom(2) }, "Font smaller" to { vm.zoom(-2) },
                                     "Zen mode (hide extras)" to { vm.zen = !vm.zen },
                                     "Keep screen on: ${if (vm.keepAwake) "ON" else "OFF"}" to { vm.keepAwake = !vm.keepAwake },
                                     "Python tip of the day" to { tipText = com.line.ide.ui.TIPS.random() },
+                                    "Learn Python (lessons)" to { showLessons = true },
+                                    "Daily challenge" to { challengeText = vm.todaysChallenge() },
+                                    "Theme sounds: ${if (vm.sound) "ON" else "OFF"}" to { vm.setSound(!vm.sound) },
                                     "Settings" to { showSettings = true }
                                 ).forEach { (l, a) ->
                                     if (a == null) DropdownMenuItem({ Text(l, fontSize = 11.sp, color = LineColors.Gold) }, {}, enabled = false)
@@ -226,7 +290,7 @@ fun IdeScreen(vm: IdeViewModel) {
                 val cur = vm.editor.selection.start.coerceIn(0, vm.editor.text.length)
                 val ln = vm.editor.text.substring(0, cur).count { it == '\n' } + 1
                 val col = cur - vm.editor.text.substring(0, cur).lastIndexOf('\n')
-                if (!vm.zen) Text("Ln $ln, Col $col  ·  ${vm.editor.text.count { it == '\n' } + 1} lines  ·  ${vm.editor.text.length} chars",
+                if (!vm.zen) Text("Ln $ln, Col $col  ·  ${vm.editor.text.count { it == '\n' } + 1} lines  ·  ${vm.editor.text.length} chars  ·  Lv ${vm.level}",
                     Modifier.padding(horizontal = 14.dp), color = LineColors.Muted, fontSize = 11.sp)
                 if (!vm.zen) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp)) {
                     listOf(" == ", " != ", " < ", " > ", " <= ", " >= ", " + ", " - ", " * ", " / ", " // ", " % ", " ** ",
@@ -249,6 +313,9 @@ fun IdeScreen(vm: IdeViewModel) {
                 }
             }
         }
+        SparkleBurst(vm.successTick)
+        AnimatedVisibility(splash, exit = fadeOut(tween(500))) { Splash() }
+        }
     }
 
     if (vm.showOutput) ModalBottomSheet({ vm.showOutput = false }, containerColor = LineColors.Midnight) {
@@ -266,6 +333,10 @@ fun IdeScreen(vm: IdeViewModel) {
                                     Text(line, color = if (vm.isError) LineColors.Error else LineColors.Ok,
                                         fontFamily = FontFamily.Monospace, fontSize = 13.sp)
                                 }
+                            }
+                            if (vm.isError) {
+                                val tip = vm.explainError()
+                                if (tip.isNotBlank()) Text("💡 $tip", Modifier.padding(top = 10.dp), color = LineColors.Gold, fontSize = 13.sp)
                             }
                             vm.plots.forEach { p ->
                                 val bmp = remember(p, vm.status) { BitmapFactory.decodeFile(p)?.asImageBitmap() }
@@ -364,6 +435,55 @@ fun IdeScreen(vm: IdeViewModel) {
             } })
     }
 
+    if (showLessons) AlertDialog({ showLessons = false },
+        confirmButton = { TextButton({ showLessons = false }) { Text("Close") } },
+        title = { Text("Learn Python") },
+        text = { Column(Modifier.verticalScroll(rememberScrollState())) {
+            com.line.ide.ui.LESSONS.forEachIndexed { i, l ->
+                Text(l.title, Modifier.fillMaxWidth().clickable { lessonIdx = i; showLessons = false }.padding(vertical = 12.dp), color = LineColors.Ivory)
+            }
+        } })
+
+    if (lessonIdx >= 0) {
+        val l = com.line.ide.ui.LESSONS[lessonIdx]
+        var ans by remember(lessonIdx) { mutableStateOf("") }
+        var result by remember(lessonIdx) { mutableStateOf("") }
+        AlertDialog({ lessonIdx = -1 },
+            confirmButton = { TextButton({ vm.importCode("lesson_${lessonIdx + 1}.py", l.code); lessonIdx = -1 }) { Text("Try the code") } },
+            dismissButton = { Row {
+                TextButton({ showLessons = true; lessonIdx = -1 }) { Text("All lessons") }
+                TextButton({ lessonIdx = -1 }) { Text("Close") }
+            } },
+            title = { Text(l.title) },
+            text = { Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text(l.body, fontSize = 14.sp)
+                Text(l.code, Modifier.padding(vertical = 8.dp), fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = LineColors.Gold)
+                Text("Quiz: ${l.question}", fontSize = 14.sp)
+                OutlinedTextField(ans, { ans = it }, singleLine = true, label = { Text("Your answer") })
+                TextButton({ result = if (ans.trim().equals(l.answer, ignoreCase = true)) "✓ Correct! 🏅" else "✗ Try again" }) { Text("Check") }
+                Text(result, color = if (result.startsWith("✓")) LineColors.Ok else LineColors.Error)
+            } })
+    }
+
+    if (tour >= 0) {
+        val pages = listOf(
+            "Welcome to Line" to "Write Python, tap Run, and read the output in the Console panel.",
+            "Your tools" to "Open the menu at the top right for editing tools, debugging, snippets, lint and more.",
+            "Make it yours" to "Menu, then Themes, has 134 animated themes. Theme sounds can be switched on or off in Settings.")
+        AlertDialog({ vm.prefs.onboarded = true; tour = -1 },
+            confirmButton = { TextButton({
+                if (tour < pages.size - 1) tour += 1 else { vm.prefs.onboarded = true; tour = -1 }
+            }) { Text(if (tour < pages.size - 1) "Next" else "Start") } },
+            title = { Text(pages[tour].first) }, text = { Text(pages[tour].second) })
+    }
+
+    challengeText?.let { ch ->
+        AlertDialog({ challengeText = null },
+            confirmButton = { TextButton({ vm.importCode("challenge.py", "# Challenge: $ch\n\n"); challengeText = null }) { Text("Start in editor") } },
+            dismissButton = { TextButton({ challengeText = null }) { Text("Later") } },
+            title = { Text("Daily challenge") }, text = { Text(ch) })
+    }
+
     if (showStats) InfoDialog("Code statistics", vm.stats()) { showStats = false }
     if (showLint) InfoDialog("Lint (PEP 8 quick check)", vm.lint().ifEmpty { listOf("No issues found ✓") }.joinToString("\n")) { showLint = false }
     tipText?.let { InfoDialog("Python tip", it) { tipText = null } }
@@ -419,12 +539,25 @@ fun IdeScreen(vm: IdeViewModel) {
     if (showThemes) AlertDialog({ showThemes = false },
         confirmButton = { TextButton({ showThemes = false }) { Text("Done") } },
         title = { Text("Themes") },
-        text = { Column(Modifier.verticalScroll(rememberScrollState())) {
-            PALETTES.forEachIndexed { i, p ->
-                Row(Modifier.fillMaxWidth().clickable { vm.setTheme(i) }.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(22.dp).clip(RoundedCornerShape(11.dp)).background(Brush.linearGradient(listOf(p.glow, p.gold))))
-                    Spacer(Modifier.width(12.dp))
-                    Text(p.name, color = if (p == LineColors.p) LineColors.Gold else LineColors.Ivory)
+        text = { Column {
+            Row(Modifier.horizontalScroll(rememberScrollState())) {
+                listOf("All", "★ Favourites", "Space", "Nature", "Weather", "Neon & Fun").forEach { c ->
+                    FilterChip(themeCat == c, { themeCat = c }, { Text(c, fontSize = 12.sp) }, Modifier.padding(end = 6.dp))
+                }
+            }
+            Column(Modifier.heightIn(max = 380.dp).verticalScroll(rememberScrollState())) {
+                PALETTES.withIndex().filter { (_, p) ->
+                    themeCat == "All" || (themeCat == "★ Favourites" && p.name in vm.favs) || themeCat == p.category()
+                }.forEach { (i, p) ->
+                    Row(Modifier.fillMaxWidth().clickable { vm.setTheme(i) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        listOf(p.obsidian, p.glow, p.gold, p.violet).forEach { c ->
+                            Box(Modifier.size(14.dp).clip(RoundedCornerShape(7.dp)).background(c))
+                            Spacer(Modifier.width(3.dp))
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Text(p.name, Modifier.weight(1f), color = if (p == LineColors.p) LineColors.Gold else LineColors.Ivory)
+                        Text(if (p.name in vm.favs) "★" else "☆", Modifier.clickable { vm.toggleFav(p.name) }.padding(8.dp), color = LineColors.Gold)
+                    }
                 }
             }
         } })
@@ -449,6 +582,10 @@ fun IdeScreen(vm: IdeViewModel) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Animated background", Modifier.weight(1f))
                     Switch(LineColors.animate, { LineColors.animate = it; vm.prefs.animate = it })
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Theme sounds", Modifier.weight(1f))
+                    Switch(vm.sound, { vm.setSound(it) })
                 }
             } })
     }

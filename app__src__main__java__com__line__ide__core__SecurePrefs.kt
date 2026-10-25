@@ -36,6 +36,15 @@ class SecurePrefs(context: Context) {
     var snips: String
         get() = prefs.getString("snips", "") ?: ""
         set(v) = prefs.edit().putString("snips", v).apply()
+    var sound: Boolean
+        get() = prefs.getBoolean("sound", false)
+        set(v) = prefs.edit().putBoolean("sound", v).apply()
+    var onboarded: Boolean
+        get() = prefs.getBoolean("onboarded", false)
+        set(v) = prefs.edit().putBoolean("onboarded", v).apply()
+    var favs: String
+        get() = prefs.getString("favs", "") ?: ""
+        set(v) = prefs.edit().putString("favs", v).apply()
     var theme: Int
         get() = prefs.getInt("theme", 0)
         set(v) = prefs.edit().putInt("theme", v).apply()

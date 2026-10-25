@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.line.ide.ai.AiAction
 import com.line.ide.ui.theme.LineColors
 import com.line.ide.ui.theme.PALETTES
+import com.line.ide.ui.theme.category
 import com.line.ide.ai.OpenRouterClient
 import com.line.ide.core.*
 import kotlinx.coroutines.Job
@@ -59,6 +60,19 @@ Files:    open("f.txt").read()
 Console tab: try  2 + 3  or  import math
 Debug: menu > Toggle breakpoint, then Run"""
 
+val CHALLENGES = listOf(
+    "Print the multiplication table of any number entered by the user.",
+    "Check whether a number is an Armstrong number.",
+    "Count vowels and consonants in a sentence.",
+    "Print the Fibonacci series up to n terms.",
+    "Find the second largest number in a list.",
+    "Check if a string is a palindrome without slicing.",
+    "Print a right-angled star triangle of n rows.",
+    "Find the factorial of n using a function.",
+    "Remove duplicates from a list without using set().",
+    "Count how many words are in a sentence."
+)
+
 val TIPS = listOf(
     "Use enumerate(items) to get index and value together.",
     "f-strings can format numbers: f\"{x:.2f}\" keeps 2 decimals.",
@@ -94,6 +108,10 @@ class IdeViewModel(app: Application) : AndroidViewModel(app) {
     var showOutput by mutableStateOf(false)
     val breakpoints = mutableStateListOf<Int>()
     var zen by mutableStateOf(false)
+    var sound by mutableStateOf(false)
+    val favs = mutableStateListOf<String>()
+    var successTick by mutableStateOf(0)
+    val level: Int get() = prefs.runs / 10 + 1
     var keepAwake by mutableStateOf(false)
     var cycle by mutableStateOf(false)
     var replLog by mutableStateOf("Python console. Type code (like 2 + 3 or import math) and tap Send.\n")
@@ -117,6 +135,8 @@ class IdeViewModel(app: Application) : AndroidViewModel(app) {
         InputBridge.onPrompt = { p -> inputSeq += 1; inputPrompt = p }
         LineColors.p = PALETTES.getOrElse(prefs.theme) { PALETTES[0] }
         LineColors.animate = prefs.animate
+        sound = prefs.sound; ThemeSound.enabled = sound
+        favs.addAll(prefs.favs.split("|").filter { it.isNotBlank() })
         if (repo.list().isEmpty()) repo.save("main.py", TEMPLATES.getValue("Hello"))
         refresh(); open(repo.list().first())
     }
@@ -188,6 +208,7 @@ class IdeViewModel(app: Application) : AndroidViewModel(app) {
             if (r.trace.isNotBlank()) outTab = 4
             output = (r.stdout + r.stderr).ifBlank { if (r.plots.isEmpty()) "(no output)" else "" }
             isError = !r.ok
+            if (r.ok) { successTick += 1; ThemeSound.chime() }
             status = (if (r.ok) "✓ Finished" else if (r.timedOut) "⏱ Timed out" else "✗ Failed") + " in ${r.elapsedMs} ms"
             val day = (System.currentTimeMillis() / 86400000L).toInt()
             if (prefs.lastDay != day) { prefs.streak = if (prefs.lastDay == day - 1) prefs.streak + 1 else 1; prefs.lastDay = day }
@@ -248,7 +269,7 @@ class IdeViewModel(app: Application) : AndroidViewModel(app) {
     fun closeTab(t: String) { if (tabs.size > 1) { tabs.remove(t); if (t == current) open(tabs.last()) } }
     fun tidy() { viewModelScope.launch { onEdit(TextFieldValue(PythonEngine.tidy(editor.text))); status = "Code tidied" } }
     fun importCode(name: String, text: String) { newFile(name, ""); onEdit(TextFieldValue(text)); save() }
-    fun setTheme(i: Int) { prefs.theme = i; LineColors.p = PALETTES[i] }
+    fun setTheme(i: Int) { prefs.theme = i; LineColors.p = PALETTES[i]; ThemeSound.theme(PALETTES[i].category()) }
 
     fun toggleComment() {
         val t = editor.text; val a = editor.selection.min; val b = editor.selection.max
@@ -419,4 +440,27 @@ class IdeViewModel(app: Application) : AndroidViewModel(app) {
         status = "Snippet saved (${mySnippets().size} total)"
     }
     fun deleteSnippet(i: Int) { prefs.snips = mySnippets().filterIndexed { k, _ -> k != i }.joinToString("\u0001") }
+
+    fun toggleFav(name: String) { if (!favs.remove(name)) favs.add(name); prefs.favs = favs.joinToString("|") }
+    fun setSound(on: Boolean) { sound = on; prefs.sound = on; ThemeSound.enabled = on; if (on) ThemeSound.chime() }
+    fun todaysChallenge(): String = CHALLENGES[((System.currentTimeMillis() / 86400000L) % CHALLENGES.size).toInt()]
+
+    fun explainError(): String {
+        val last = output.lines().lastOrNull { it.isNotBlank() } ?: return ""
+        return when {
+            last.startsWith("NameError") -> "NameError: you used a name that doesn't exist yet. Check the spelling, and define the variable before using it."
+            last.startsWith("SyntaxError") -> "SyntaxError: Python can't read this line. Look for a missing colon, bracket or quote."
+            last.startsWith("IndentationError") -> "IndentationError: lines inside if, for or def must be indented by the same 4 spaces."
+            last.startsWith("TypeError") -> "TypeError: you mixed incompatible types, like text + number. Convert with int(), str() or float()."
+            last.startsWith("ValueError") -> "ValueError: the value has the right type but a wrong form, like int(\"abc\"). Check what was typed."
+            last.startsWith("ZeroDivisionError") -> "ZeroDivisionError: you divided by zero. Check the divisor before dividing."
+            last.startsWith("IndexError") -> "IndexError: the index is outside the list or string. Valid indexes are 0 to len - 1."
+            last.startsWith("KeyError") -> "KeyError: that key is not in the dictionary. Use d.get(key) to be safe."
+            last.startsWith("AttributeError") -> "AttributeError: this object has no such method or attribute. Check the name and the type."
+            last.startsWith("ModuleNotFoundError") -> "ModuleNotFoundError: the module isn't installed. Try menu: Install package (pip) for pure-Python packages."
+            last.startsWith("EOFError") -> "EOFError: input() ran out of data. Type your answer in the Input box when it appears."
+            last.contains("Execution exceeded") -> "Timeout: your code ran too long. Look for an endless loop, or raise the timeout in Settings."
+            else -> ""
+        }
+    }
 }
