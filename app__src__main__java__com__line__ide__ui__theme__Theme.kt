@@ -33,6 +33,16 @@ val PALETTES = listOf(
     Palette("🌙 Moon", true, Color(0xFF05060F), Color(0xFF0D1124), Color(0xFFFFF3C4), Color(0xFFF5F3E8), Color(0xFF8A8DA8), Color(0x0DFFFFFF), Color(0xFF1B2250), Color(0xFFA5B4FC), Fx.MOON),
     Palette("🐱 Cartoon", true, Color(0xFF1A1030), Color(0xFF271848), Color(0xFFFFB86B), Color(0xFFFFF5E1), Color(0xFFB39DDB), Color(0x0DFFFFFF), Color(0xFF5B2A8A), Color(0xFFFF9EC4), Fx.CARTOON),
     Palette("🦋 Butterfly", true, Color(0xFF0A0818), Color(0xFF15112B), Color(0xFFF472B6), Color(0xFFFFEFF8), Color(0xFF9A8DBF), Color(0x0DFFFFFF), Color(0xFF34195E), Color(0xFF60A5FA), Fx.BUTTERFLY),
+    Palette("🌸 Cherry Blossoms", true, Color(0xFF150A12), Color(0xFF24101C), Color(0xFFFFB3D1), Color(0xFFFFEEF5), Color(0xFFB08598), Color(0x0DFFFFFF), Color(0xFF5A1B3F), Color(0xFFFF7FAF), Fx.CHERRY),
+    Palette("🪐 Solar System", true, Color(0xFF03030A), Color(0xFF0B0B1C), Color(0xFFFFC857), Color(0xFFF4F1E8), Color(0xFF8A87A3), Color(0x0DFFFFFF), Color(0xFF15163D), Color(0xFF4F9DFF), Fx.SOLAR),
+    Palette("🌌 Galaxy", true, Color(0xFF04030D), Color(0xFF0C0A20), Color(0xFF9DB7FF), Color(0xFFECEFFF), Color(0xFF7D84B5), Color(0x0DFFFFFF), Color(0xFF241A5A), Color(0xFFFFE9B0), Fx.GALAXY),
+    Palette("🌍 Planet Earth", true, Color(0xFF020712), Color(0xFF071426), Color(0xFF4FA8FF), Color(0xFFE6F3FF), Color(0xFF6F93B8), Color(0x0DFFFFFF), Color(0xFF0B2E66), Color(0xFF3DBE6B), Fx.EARTH_GLOBE),
+    Palette("🌞 Sun Flare", true, Color(0xFF120703), Color(0xFF1F0F06), Color(0xFFFFB347), Color(0xFFFFF1DC), Color(0xFFB0825A), Color(0x0DFFFFFF), Color(0xFF5C2A06), Color(0xFFFFD27A), Fx.SUN),
+    Palette("🌑 Eclipse", true, Color(0xFF05050A), Color(0xFF0F0F18), Color(0xFFFFF1C2), Color(0xFFF2F0E6), Color(0xFF8A8A99), Color(0x0DFFFFFF), Color(0xFF1A1A2E), Color(0xFFFFB347), Fx.ECLIPSE),
+    Palette("🌠 Meteor Shower", true, Color(0xFF04060F), Color(0xFF0A1020), Color(0xFF9FD8FF), Color(0xFFEAF6FF), Color(0xFF7592B0), Color(0x0DFFFFFF), Color(0xFF0F2850), Color(0xFFC4B5FD), Fx.METEORS),
+    Palette("🪐 Saturn", true, Color(0xFF0A0705), Color(0xFF17100A), Color(0xFFE9D8A6), Color(0xFFFFF6E0), Color(0xFFA89674), Color(0x0DFFFFFF), Color(0xFF3A2610), Color(0xFFF3D9A0), Fx.SATURN),
+    Palette("🔭 Nebula", true, Color(0xFF07030F), Color(0xFF120A22), Color(0xFFFF7AC8), Color(0xFFFFEAF6), Color(0xFFA07CB5), Color(0x0DFFFFFF), Color(0xFF3A0F55), Color(0xFF22D3EE), Fx.NEBULA),
+    Palette("🚀 Warp Speed", true, Color(0xFF02040C), Color(0xFF080E1E), Color(0xFF7DD3FC), Color(0xFFEAF8FF), Color(0xFF6A8CAD), Color(0x0DFFFFFF), Color(0xFF0C2A5E), Color(0xFFA5B4FC), Fx.WARP),
     Palette("Dracula", true, Color(0xFF282A36), Color(0xFF343746), Color(0xFFBD93F9), Color(0xFFF8F8F2), Color(0xFF6272A4), Color(0x14FFFFFF), Color(0xFF44475A), Color(0xFFFF79C6), Fx.AURORA),
     Palette("Ivory Light", false, Color(0xFFFAF7F0), Color(0xFFEDE6D6), Color(0xFF9A6B00), Color(0xFF1B1F2A), Color(0xFF7A7F8E), Color(0x14000000), Color(0xFFFFFFFF), Color(0xFF6D3FD6), Fx.NONE)
 ) + GENERATED_PALETTES

@@ -52,11 +52,17 @@ def _save_plots(plot_dir: str) -> list:
     return paths
 
 
-def run(code: str, stdin_text: str = "", timeout: float = 30.0, plot_dir: str = "", workspace: str = "", trace: bool = False) -> str:
+def run(code: str, stdin_text: str = "", timeout: float = 30.0, plot_dir: str = "", workspace: str = "", trace: bool = False, breakpoints: str = "") -> str:
     out, err = io.StringIO(), io.StringIO()
     res = {"stdout": "", "stderr": "", "elapsed_ms": 0, "ok": True, "timed_out": False, "plots": []}
     waited = [0.0]
     steps = []
+    bps = {int(x) for x in breakpoints.split(",") if x.strip().isdigit()}
+    try:
+        from java import jclass
+        bridge = jclass("com.line.ide.core.InputBridge")
+    except Exception:
+        bridge = None
     if workspace:
         os.makedirs(workspace, exist_ok=True)
         os.chdir(workspace)
@@ -65,18 +71,23 @@ def run(code: str, stdin_text: str = "", timeout: float = 30.0, plot_dir: str = 
                 sys.path.insert(0, p)
 
     def _tracer(frame, event, arg):
-        if frame.f_code.co_filename != "main.py" or len(steps) >= 400:
+        if frame.f_code.co_filename != "main.py":
             return None
         if event == "line":
             loc = {k: repr(v)[:30] for k, v in frame.f_locals.items() if not k.startswith("__") and not callable(v)}
-            steps.append(f"L{frame.f_lineno}: " + ", ".join(f"{k}={v}" for k, v in list(loc.items())[:6]))
+            if trace and len(steps) < 400:
+                steps.append(f"L{frame.f_lineno}: " + ", ".join(f"{k}={v}" for k, v in list(loc.items())[:6]))
+            if frame.f_lineno in bps and bridge is not None:
+                t0 = time.perf_counter()
+                bridge.request(f"Breakpoint at line {frame.f_lineno}\n" + "\n".join(f"{k} = {v}" for k, v in list(loc.items())[:12]) + "\n\nTap Enter to continue.")
+                waited[0] += time.perf_counter() - t0
         return _tracer
     ns = {"__name__": "__main__", "__file__": "main.py"}
     ns["input"] = _make_input(waited)
 
     def target():
         try:
-            if trace:
+            if trace or bps:
                 sys.settrace(_tracer)
             try:
                 exec(compile(code, "main.py", "exec"), ns)
@@ -165,3 +176,28 @@ def pip_install(name: str, workspace: str) -> str:
         return f"Installed {name} {data['info']['version']}. Dependencies are not installed automatically."
     except Exception as e:
         return f"Could not install {name}: {e}"
+
+
+_repl_ns = {"__name__": "__console__"}
+
+
+def repl(line: str, workspace: str = "") -> str:
+    """One console command (expression or statement) in a persistent namespace."""
+    import ast
+    if workspace and workspace not in sys.path:
+        sys.path.insert(0, workspace)
+    _repl_ns.setdefault("input", _make_input([0.0]))
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+        try:
+            try:
+                tree = ast.parse(line, mode="eval")
+            except SyntaxError:
+                exec(compile(line, "<console>", "exec"), _repl_ns)
+            else:
+                val = eval(compile(tree, "<console>", "eval"), _repl_ns)
+                if val is not None:
+                    print(repr(val))
+        except BaseException:
+            print("\n".join(l for l in traceback.format_exc().splitlines() if "line_runner.py" not in l))
+    return out.getvalue()

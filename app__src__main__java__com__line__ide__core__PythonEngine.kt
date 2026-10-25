@@ -14,14 +14,17 @@ object PythonEngine {
     val version: String by lazy { module.callAttr("python_version").toString() }
 
     suspend fun run(code: String, stdin: String, timeoutSec: Double, plotDir: String,
-                    workspace: String, trace: Boolean): RunResult =
+                    workspace: String, trace: Boolean, breakpoints: String): RunResult =
         withContext(Dispatchers.IO) {
             InputBridge.reset()
-            val j = JSONObject(module.callAttr("run", code, stdin, timeoutSec, plotDir, workspace, trace).toString())
+            val j = JSONObject(module.callAttr("run", code, stdin, timeoutSec, plotDir, workspace, trace, breakpoints).toString())
             val p = j.getJSONArray("plots")
             RunResult(j.getString("stdout"), j.getString("stderr"), j.getInt("elapsed_ms"),
                 j.getBoolean("ok"), j.getBoolean("timed_out"), List(p.length()) { p.getString(it) }, j.getString("trace"))
         }
+
+    suspend fun repl(line: String, workspace: String): String =
+        withContext(Dispatchers.IO) { module.callAttr("repl", line, workspace).toString() }
 
     suspend fun pip(name: String, workspace: String): String =
         withContext(Dispatchers.IO) { module.callAttr("pip_install", name, workspace).toString() }

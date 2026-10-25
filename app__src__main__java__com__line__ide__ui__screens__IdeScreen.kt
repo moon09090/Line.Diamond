@@ -6,7 +6,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -62,6 +66,29 @@ private fun AuroraBackground(content: @Composable () -> Unit) {
 }
 
 @Composable
+private fun InfoDialog(title: String, body: String, onClose: () -> Unit) = AlertDialog(onClose,
+    confirmButton = { TextButton(onClose) { Text("Close") } },
+    title = { Text(title) },
+    text = { Column(Modifier.verticalScroll(rememberScrollState())) {
+        SelectionContainer { Text(body, fontFamily = FontFamily.Monospace, fontSize = 13.sp) } } })
+
+@Composable
+private fun LineLogo() {
+    val tr = rememberInfiniteTransition(label = "logo")
+    val a by tr.animateFloat(0f, 360f, infiniteRepeatable(tween(4000, easing = LinearEasing)), label = "a")
+    Canvas(Modifier.size(30.dp)) {
+        val c = center
+        val r = size.minDimension / 2f - 3f
+        drawCircle(LineColors.Gold.copy(alpha = 0.35f), r, c, style = Stroke(2f))
+        drawArc(LineColors.Gold, a, 70f, false, Offset(c.x - r, c.y - r), Size(r * 2f, r * 2f), style = Stroke(3f, cap = StrokeCap.Round))
+        drawLine(LineColors.Gold, Offset(size.width * 0.3f, size.height * 0.7f), Offset(size.width * 0.7f, size.height * 0.3f),
+            strokeWidth = 4f, cap = StrokeCap.Round)
+        drawCircle(LineColors.Violet, 3.5f, Offset(size.width * 0.7f, size.height * 0.3f))
+        drawCircle(LineColors.Violet, 3.5f, Offset(size.width * 0.3f, size.height * 0.7f))
+    }
+}
+
+@Composable
 private fun RunButton(enabled: Boolean, onClick: () -> Unit) {
     val t = rememberInfiniteTransition(label = "shimmer")
     val x by t.animateFloat(-1f, 2f, infiniteRepeatable(tween(3500, easing = LinearEasing)), label = "x")
@@ -90,8 +117,25 @@ fun IdeScreen(vm: IdeViewModel) {
     var showThemes by remember { mutableStateOf(false) }
     var showOutline by remember { mutableStateOf(false) }
     var showPip by remember { mutableStateOf(false) }
+    var showRename by remember { mutableStateOf(false) }
+    var showStats by remember { mutableStateOf(false) }
+    var showLint by remember { mutableStateOf(false) }
+    var showImport by remember { mutableStateOf(false) }
+    var showSnips by remember { mutableStateOf(false) }
+    var snipTick by remember { mutableStateOf(0) }
+    var tipText by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(vm.cycle) { while (vm.cycle) { kotlinx.coroutines.delay(15000); vm.randomTheme() } }
+    LaunchedEffect(vm.keepAwake) {
+        (ctx as? android.app.Activity)?.window?.let { w ->
+            val flag = android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+            if (vm.keepAwake) w.addFlags(flag) else w.clearFlags(flag)
+        }
+    }
     val ctx = LocalContext.current
     val clip = LocalClipboardManager.current
+    val shareText: (String) -> Unit = { txt ->
+        ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, txt), "Share"))
+    }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { vm.importCode(it.lastPathSegment?.substringAfterLast('/') ?: "imported.py",
             ctx.contentResolver.openInputStream(it)?.bufferedReader()?.readText() ?: "") }
@@ -102,30 +146,61 @@ fun IdeScreen(vm: IdeViewModel) {
             containerColor = Color.Transparent,
             topBar = {
                 TopAppBar(
-                    title = { Column {
-                        Text(vm.current, fontSize = 16.sp, color = LineColors.Ivory, fontFamily = FontFamily.Monospace)
-                        Text(vm.status, fontSize = 11.sp, color = if (vm.isError) LineColors.Error else LineColors.Muted)
+                    title = { Row(verticalAlignment = Alignment.CenterVertically) {
+                        LineLogo()
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            Text(vm.current, fontSize = 16.sp, color = LineColors.Ivory, fontFamily = FontFamily.Monospace)
+                            Text(vm.status, fontSize = 11.sp, color = if (vm.isError) LineColors.Error else LineColors.Muted, maxLines = 1)
+                        }
                     } },
                     navigationIcon = { IconButton({ showFiles = true }) { Icon(Icons.Default.Folder, null, tint = LineColors.Gold) } },
                     actions = {
                         TextButton({ vm.showOutput = true }) { Text("Console", color = LineColors.Violet) }
                         Box { IconButton({ menu = true }) { Icon(Icons.Default.MoreVert, "More", tint = LineColors.Muted) }
                             DropdownMenu(menu, { menu = false }) {
-                                listOf<Pair<String, () -> Unit>>("Undo" to { vm.undo() }, "Redo" to { vm.redo() },
-                                    "Find & replace" to { vm.showFind = !vm.showFind }, "Tidy code" to { vm.tidy() },
-                                    "Run with trace (step debugger)" to { vm.runWithTrace() },
+                                listOf<Pair<String, (() -> Unit)?>>(
+                                    "EDIT" to null,
+                                    "Undo" to { vm.undo() }, "Redo" to { vm.redo() }, "Select all" to { vm.selectAll() },
+                                    "Find & replace" to { vm.showFind = !vm.showFind },
+                                    "Toggle comment" to { vm.toggleComment() }, "Indent" to { vm.indent() }, "Dedent" to { vm.dedent() },
+                                    "Move line up" to { vm.moveUp() }, "Move line down" to { vm.moveDown() },
+                                    "Duplicate line" to { vm.duplicateLine() }, "Delete line" to { vm.deleteLine() },
+                                    "TRANSFORM" to null,
+                                    "UPPERCASE selection" to { vm.upper() }, "lowercase selection" to { vm.lower() },
+                                    "Sort lines" to { vm.sortLines() }, "Remove blank lines" to { vm.removeBlankLines() },
+                                    "Wrap selection in print()" to { vm.wrapPrint() },
+                                    "Tidy code" to { vm.tidy() }, "Add file header" to { vm.addHeader() },
+                                    "CODE TOOLS" to null,
+                                    "Add import…" to { showImport = true }, "Outline (jump to def)" to { showOutline = true },
+                                    "Lint (PEP 8 check)" to { showLint = true }, "Code statistics" to { showStats = true },
                                     "Install package (pip)" to { showPip = true },
-                                    "Toggle comment" to { vm.toggleComment() },
-                                    "Duplicate line" to { vm.duplicateLine() },
-                                    "Delete line" to { vm.deleteLine() },
-                                    "Outline (jump to def)" to { showOutline = true },
+                                    "RUN & DEBUG" to null,
+                                    "Run with trace" to { vm.runWithTrace() },
+                                    "Toggle breakpoint (this line)" to { vm.toggleBreakpoint() },
+                                    "Clear breakpoints" to { vm.breakpoints.clear() },
+                                    "Benchmark (run 5 times)" to { vm.benchmark() },
                                     "Clear output" to { vm.output = ""; vm.plots.clear() },
                                     "Copy output" to { clip.setText(AnnotatedString(vm.output)) },
-                                    "Themes" to { showThemes = true },
-                                    "Settings" to { showSettings = true },
-                                    "Share code" to { ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain")
-                                        .putExtra(Intent.EXTRA_TEXT, vm.editor.text), "Share code")) }
-                                ).forEach { (l, a) -> DropdownMenuItem({ Text(l) }, { menu = false; a() }) }
+                                    "Share output" to { shareText(vm.output) },
+                                    "FILES & SNIPPETS" to null,
+                                    "Rename file" to { showRename = true }, "Duplicate file" to { vm.duplicateFile() },
+                                    "Copy all code" to { clip.setText(AnnotatedString(vm.editor.text)) },
+                                    "Share code" to { shareText(vm.editor.text) },
+                                    "My snippets…" to { showSnips = true },
+                                    "Save selection as snippet" to { vm.saveSnippet() },
+                                    "VIEW & FUN" to null,
+                                    "Themes" to { showThemes = true }, "Random theme" to { vm.randomTheme() },
+                                    "Theme slideshow: ${if (vm.cycle) "ON" else "OFF"}" to { vm.cycle = !vm.cycle },
+                                    "Font bigger" to { vm.zoom(2) }, "Font smaller" to { vm.zoom(-2) },
+                                    "Zen mode (hide extras)" to { vm.zen = !vm.zen },
+                                    "Keep screen on: ${if (vm.keepAwake) "ON" else "OFF"}" to { vm.keepAwake = !vm.keepAwake },
+                                    "Python tip of the day" to { tipText = com.line.ide.ui.TIPS.random() },
+                                    "Settings" to { showSettings = true }
+                                ).forEach { (l, a) ->
+                                    if (a == null) DropdownMenuItem({ Text(l, fontSize = 11.sp, color = LineColors.Gold) }, {}, enabled = false)
+                                    else DropdownMenuItem({ Text(l) }, { menu = false; a() })
+                                }
                             } }
                         RunButton(!vm.running) { vm.run() }
                         Spacer(Modifier.width(8.dp))
@@ -146,21 +221,21 @@ fun IdeScreen(vm: IdeViewModel) {
                     OutlinedTextField(vm.replaceText, { vm.replaceText = it }, Modifier.weight(1f), singleLine = true, label = { Text("Replace") })
                     Column { TextButton({ vm.findNext() }) { Text("Next") }; TextButton({ vm.replaceAll() }) { Text("All") } }
                 }
-                CodeEditor(vm.editor, vm.errorLine, vm.fontSize, vm::onEdit,
+                CodeEditor(vm.editor, vm.errorLine, vm.fontSize, vm.breakpoints.toSet(), vm::onEdit,
                     Modifier.weight(1f).fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp).glass())
                 val cur = vm.editor.selection.start.coerceIn(0, vm.editor.text.length)
                 val ln = vm.editor.text.substring(0, cur).count { it == '\n' } + 1
                 val col = cur - vm.editor.text.substring(0, cur).lastIndexOf('\n')
-                Text("Ln $ln, Col $col  ·  ${vm.editor.text.count { it == '\n' } + 1} lines  ·  ${vm.editor.text.length} chars",
+                if (!vm.zen) Text("Ln $ln, Col $col  ·  ${vm.editor.text.count { it == '\n' } + 1} lines  ·  ${vm.editor.text.length} chars",
                     Modifier.padding(horizontal = 14.dp), color = LineColors.Muted, fontSize = 11.sp)
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp)) {
+                if (!vm.zen) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp)) {
                     listOf(" == ", " != ", " < ", " > ", " <= ", " >= ", " + ", " - ", " * ", " / ", " // ", " % ", " ** ",
                         " and ", " or ", " not ", " in ", " is ").forEach { k ->
                         TextButton({ vm.insert(k) }, contentPadding = PaddingValues(horizontal = 9.dp)) {
                             Text(k.trim(), color = LineColors.Violet, fontFamily = FontFamily.Monospace) }
                     }
                 }
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(4.dp)) {
+                if (!vm.zen) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(4.dp)) {
                     vm.suggestions().forEach { w ->
                         AssistChip({ vm.accept(w) }, { Text(w, fontFamily = FontFamily.Monospace) }, Modifier.padding(horizontal = 2.dp))
                     }
@@ -178,8 +253,8 @@ fun IdeScreen(vm: IdeViewModel) {
 
     if (vm.showOutput) ModalBottomSheet({ vm.showOutput = false }, containerColor = LineColors.Midnight) {
         Column(Modifier.fillMaxWidth().heightIn(min = 320.dp, max = 560.dp).padding(horizontal = 12.dp)) {
-            TabRow(vm.outTab, containerColor = Color.Transparent, contentColor = LineColors.Gold) {
-                listOf("Output", "Input", "AI", "History", "Trace").forEachIndexed { i, t -> Tab(vm.outTab == i, { vm.outTab = i }, text = { Text(t) }) }
+            ScrollableTabRow(vm.outTab, containerColor = Color.Transparent, contentColor = LineColors.Gold, edgePadding = 4.dp) {
+                listOf("Output", "Input", "AI", "History", "Trace", "Console", "Help").forEachIndexed { i, t -> Tab(vm.outTab == i, { vm.outTab = i }, text = { Text(t) }) }
             }
             Box(Modifier.weight(1f).fillMaxWidth().padding(top = 8.dp)) {
                 when (vm.outTab) {
@@ -200,6 +275,18 @@ fun IdeScreen(vm: IdeViewModel) {
                     }
                     1 -> OutlinedTextField(vm.stdin, { vm.stdin = it }, Modifier.fillMaxSize(),
                         label = { Text("stdin (one line per input() call)") })
+                    5 -> Column {
+                        var cmd by remember { mutableStateOf("") }
+                        SelectionContainer(Modifier.weight(1f)) { Text(vm.replLog, Modifier.verticalScroll(rememberScrollState()),
+                            color = LineColors.Ok, fontFamily = FontFamily.Monospace, fontSize = 12.sp) }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            OutlinedTextField(cmd, { cmd = it }, Modifier.weight(1f), singleLine = true, label = { Text(">>>") })
+                            TextButton({ if (cmd.isNotBlank()) { vm.replRun(cmd); cmd = "" } }) { Text("Send") }
+                        }
+                    }
+                    6 -> Column(Modifier.verticalScroll(rememberScrollState())) {
+                        Text(com.line.ide.ui.CHEATSHEET, color = LineColors.Ivory, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+                    }
                     4 -> SelectionContainer { Column(Modifier.verticalScroll(rememberScrollState())) {
                         Text(vm.trace.ifBlank { "Use the menu: Run with trace, to see every executed line with its variables." },
                             color = LineColors.Ivory, fontFamily = FontFamily.Monospace, fontSize = 12.sp) } }
@@ -259,8 +346,10 @@ fun IdeScreen(vm: IdeViewModel) {
         AlertDialog({ vm.submitInput("") },
             confirmButton = { TextButton({ vm.submitInput(text) }) { Text("Enter") } },
             title = { Text("Input") },
-            text = { OutlinedTextField(text, { text = it }, singleLine = true,
-                label = { Text(prompt.ifBlank { "Type your input" }) }) })
+            text = { Column {
+                Text(prompt, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+                OutlinedTextField(text, { text = it }, singleLine = true, label = { Text("Type here, then Enter") })
+            } })
     }
 
     if (showPip) {
@@ -273,6 +362,46 @@ fun IdeScreen(vm: IdeViewModel) {
                 OutlinedTextField(pkg, { pkg = it }, singleLine = true, label = { Text("PyPI name, e.g. colorama") })
                 Text(vm.pipLog, Modifier.padding(top = 8.dp), fontSize = 12.sp, color = LineColors.Muted)
             } })
+    }
+
+    if (showStats) InfoDialog("Code statistics", vm.stats()) { showStats = false }
+    if (showLint) InfoDialog("Lint (PEP 8 quick check)", vm.lint().ifEmpty { listOf("No issues found ✓") }.joinToString("\n")) { showLint = false }
+    tipText?.let { InfoDialog("Python tip", it) { tipText = null } }
+
+    if (showImport) AlertDialog({ showImport = false },
+        confirmButton = { TextButton({ showImport = false }) { Text("Close") } },
+        title = { Text("Add import") },
+        text = { Column(Modifier.verticalScroll(rememberScrollState())) {
+            listOf("math", "random", "os", "sys", "json", "re", "time", "datetime", "collections", "itertools", "functools",
+                "statistics", "string", "csv", "pathlib", "typing", "numpy as np", "pandas as pd", "matplotlib.pyplot as plt").forEach { n ->
+                Text("import $n", Modifier.fillMaxWidth().clickable { vm.addImport(n); showImport = false }.padding(vertical = 10.dp),
+                    fontFamily = FontFamily.Monospace, fontSize = 13.sp)
+            }
+        } })
+
+    if (showSnips) {
+        val snips = remember(snipTick, showSnips) { vm.mySnippets() }
+        AlertDialog({ showSnips = false },
+            confirmButton = { TextButton({ showSnips = false }) { Text("Close") } },
+            title = { Text("My snippets") },
+            text = { Column(Modifier.verticalScroll(rememberScrollState())) {
+                if (snips.isEmpty()) Text("Nothing saved yet. Select code, then menu: Save selection as snippet.", color = LineColors.Muted, fontSize = 13.sp)
+                snips.forEachIndexed { i, sn ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(sn.lines().first().take(40), Modifier.weight(1f).clickable { vm.insert(sn); showSnips = false }.padding(vertical = 10.dp),
+                            fontFamily = FontFamily.Monospace, fontSize = 13.sp)
+                        IconButton({ vm.deleteSnippet(i); snipTick += 1 }) { Icon(Icons.Default.Delete, null, tint = LineColors.Muted) }
+                    }
+                }
+            } })
+    }
+
+    if (showRename) {
+        var nn by remember { mutableStateOf(vm.current.removeSuffix(".py")) }
+        AlertDialog({ showRename = false },
+            confirmButton = { TextButton({ vm.rename(vm.current, nn); showRename = false }) { Text("Rename") } },
+            title = { Text("Rename file") },
+            text = { OutlinedTextField(nn, { nn = it }, singleLine = true, label = { Text("new name") }) })
     }
 
     if (showOutline) AlertDialog({ showOutline = false },

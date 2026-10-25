@@ -24,6 +24,18 @@ class SecurePrefs(context: Context) {
     var animate: Boolean
         get() = prefs.getBoolean("anim", true)
         set(v) = prefs.edit().putBoolean("anim", v).apply()
+    var runs: Int
+        get() = prefs.getInt("runs", 0)
+        set(v) = prefs.edit().putInt("runs", v).apply()
+    var lastDay: Int
+        get() = prefs.getInt("lastDay", 0)
+        set(v) = prefs.edit().putInt("lastDay", v).apply()
+    var streak: Int
+        get() = prefs.getInt("streak", 0)
+        set(v) = prefs.edit().putInt("streak", v).apply()
+    var snips: String
+        get() = prefs.getString("snips", "") ?: ""
+        set(v) = prefs.edit().putString("snips", v).apply()
     var theme: Int
         get() = prefs.getInt("theme", 0)
         set(v) = prefs.edit().putInt("theme", v).apply()

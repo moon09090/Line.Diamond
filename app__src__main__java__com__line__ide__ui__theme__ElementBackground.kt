@@ -10,7 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -23,7 +25,7 @@ import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin
 
-enum class Fx { AURORA, FIRE, WATER, EARTH, AIR, LIGHTNING, ICE, FOREST, COSMOS, SAKURA, MATRIX, NEON, LAVA, PRISM, FLOWERS, LEAF, DROPLETS, SKY, MOON, CARTOON, BUTTERFLY, FIREWORKS, CONFETTI, BUBBLES, HEARTS, RINGS, COMET, SPIRAL, DIAMONDS, RIBBONS, STARDUST, NONE }
+enum class Fx { AURORA, FIRE, WATER, EARTH, AIR, LIGHTNING, ICE, FOREST, COSMOS, SAKURA, MATRIX, NEON, LAVA, PRISM, FLOWERS, LEAF, DROPLETS, SKY, MOON, CARTOON, BUTTERFLY, CHERRY, SOLAR, GALAXY, EARTH_GLOBE, SUN, ECLIPSE, METEORS, SATURN, NEBULA, WARP, FIREWORKS, CONFETTI, BUBBLES, HEARTS, RINGS, COMET, SPIRAL, DIAMONDS, RIBBONS, STARDUST, NONE }
 
 private const val TAU = 6.2832f
 
@@ -64,6 +66,16 @@ fun ElementBackground(content: @Composable () -> Unit) {
             Fx.MOON -> moon(t)
             Fx.CARTOON -> cartoon(t)
             Fx.BUTTERFLY -> butterflies(t)
+            Fx.CHERRY -> cherry(t)
+            Fx.SOLAR -> solar(t)
+            Fx.GALAXY -> galaxy(t)
+            Fx.EARTH_GLOBE -> earthGlobe(t)
+            Fx.SUN -> sunFlare(t)
+            Fx.ECLIPSE -> eclipse(t)
+            Fx.METEORS -> meteors(t)
+            Fx.SATURN -> saturn(t)
+            Fx.NEBULA -> nebula(t)
+            Fx.WARP -> warp(t)
             Fx.FIREWORKS -> fireworks(t)
             Fx.CONFETTI -> confetti(t)
             Fx.BUBBLES -> bubbles(t)
@@ -484,5 +496,155 @@ private fun DrawScope.stardust(t: Float) {
         val a = 0.3f + 0.7f * (0.5f + 0.5f * sin(t * TAU * (2 + i % 4) + i))
         val col = when (i % 3) { 0 -> LineColors.Gold; 1 -> LineColors.Violet; else -> Color.White }
         drawCircle(col.copy(alpha = a * 0.7f), 1f + rnd(i, 4) * 2f, Offset(size.width * rnd(i, 3) + life * 90f - 45f, size.height * life))
+    }
+}
+
+private fun DrawScope.starsBg(t: Float, n: Int, alphaMul: Float = 1f) {
+    for (i in 0 until n) {
+        val a = 0.2f + 0.8f * (0.5f + 0.5f * sin(t * TAU * (2 + i % 5) + i))
+        drawCircle(Color.White.copy(alpha = a * alphaMul), 0.8f + rnd(i, 4) * 1.3f, Offset(size.width * rnd(i, 3), size.height * rnd(i, 5)))
+    }
+}
+
+private fun DrawScope.cherry(t: Float) {
+    val br = Path()
+    br.moveTo(size.width * 1.05f, size.height * 0.05f)
+    br.cubicTo(size.width * 0.8f, size.height * 0.1f, size.width * 0.6f, size.height * 0.08f, size.width * 0.35f, size.height * 0.2f)
+    drawPath(br, Color(0xFF4A2A2A), style = Stroke(width = 9f, cap = StrokeCap.Round))
+    for (i in 0 until 16) {
+        val f = i / 15f
+        val x = size.width * (1.0f - 0.65f * f)
+        val y = size.height * (0.06f + 0.14f * f * f) + sin(t * TAU + i) * 3f
+        val r = 7f + rnd(i, 1) * 6f
+        for (k in 0 until 5) {
+            val ang = k * TAU / 5f + sin(t * TAU) * 0.3f
+            drawCircle(Color(0xFFFFC2DD).copy(alpha = 0.85f), r * 0.5f, Offset(x + cos(ang) * r * 0.6f, y + sin(ang) * r * 0.6f))
+        }
+        drawCircle(Color(0xFFFF7FAF), r * 0.25f, Offset(x, y))
+    }
+    sakura(t)
+}
+
+private fun DrawScope.solar(t: Float) {
+    starsBg(t, 50)
+    val c = Offset(size.width * 0.5f, size.height * 0.42f)
+    val sunR = size.width * 0.07f
+    drawCircle(Brush.radialGradient(listOf(Color(0xCCFFD166), Color.Transparent), center = c, radius = sunR * 4f), sunR * 4f, c)
+    drawCircle(Color(0xFFFFC857), sunR, c)
+    val cols = listOf(0xFFB1B1B1, 0xFFE8C07A, 0xFF4F9DFF, 0xFFE2674A, 0xFFD9A066, 0xFFE9D8A6, 0xFF7FDBDA, 0xFF3B6FD8)
+    val cyc = listOf(24, 16, 12, 8, 5, 3, 2, 1)
+    val rad = listOf(3f, 4f, 4.5f, 3.5f, 9f, 8f, 6f, 6f)
+    for (i in 0 until 8) {
+        val orbit = sunR * 1.8f + i * size.width * 0.052f
+        drawOval(Color.White.copy(alpha = 0.10f), Offset(c.x - orbit, c.y - orbit * 0.55f), Size(orbit * 2f, orbit * 1.1f), style = Stroke(1f))
+        val ang = t * TAU * cyc[i] + i * 0.9f
+        drawCircle(Color(cols[i]), rad[i], Offset(c.x + cos(ang) * orbit, c.y + sin(ang) * orbit * 0.55f))
+    }
+}
+
+private fun DrawScope.galaxy(t: Float) {
+    starsBg(t, 50)
+    val c = Offset(size.width * 0.5f, size.height * 0.4f)
+    drawCircle(Brush.radialGradient(listOf(Color(0x66FFE9B0), Color.Transparent), center = c, radius = size.width * 0.3f), size.width * 0.3f, c)
+    for (arm in 0 until 2) for (k in 0 until 110) {
+        val ang = k * 0.12f + arm * 3.1416f + t * TAU
+        val rad = k * size.width * 0.0045f
+        val spread = rnd(k + arm * 200, 7) * 14f - 7f
+        val col = if (k < 40) Color(0xFFFFE9B0) else Color(0xFF9DB7FF)
+        drawCircle(col.copy(alpha = 0.75f * (1f - k / 130f)), 1.2f + rnd(k, 8) * 1.8f,
+            Offset(c.x + cos(ang) * rad + spread, c.y + sin(ang) * rad * 0.6f + spread * 0.5f))
+    }
+}
+
+private fun DrawScope.earthGlobe(t: Float) {
+    starsBg(t, 40)
+    val c = Offset(size.width * 0.5f, size.height * 0.38f)
+    val r = size.width * 0.26f
+    val lit = Offset(c.x - r * 0.3f, c.y - r * 0.3f)
+    drawCircle(Brush.radialGradient(listOf(Color(0x664FA8FF), Color.Transparent), center = c, radius = r * 1.5f), r * 1.5f, c)
+    drawCircle(Brush.radialGradient(listOf(Color(0xFF2F7CF0), Color(0xFF0B2A6B)), center = lit, radius = r * 1.4f), r, c)
+    val disc = Path().apply { addOval(Rect(c.x - r, c.y - r, c.x + r, c.y + r)) }
+    clipPath(disc) {
+        for (i in 0 until 7) {
+            val x = c.x - r + ((t + rnd(i, 1)) % 1f) * 2f * r
+            val y = c.y + (rnd(i, 2) - 0.5f) * r * 1.3f
+            drawOval(Color(0xFF3DBE6B).copy(alpha = 0.85f), Offset(x - r * 0.25f, y - r * 0.12f), Size(r * 0.5f * (0.6f + rnd(i, 3)), r * 0.25f))
+        }
+        drawCircle(Brush.radialGradient(listOf(Color.Transparent, Color(0x99000000)), center = lit, radius = r * 1.6f), r, c)
+    }
+    val a = t * TAU
+    drawCircle(Color(0xFFDDDDDD), r * 0.1f, Offset(c.x + cos(a) * r * 1.6f, c.y + sin(a) * r * 0.5f))
+}
+
+private fun DrawScope.sunFlare(t: Float) {
+    val c = Offset(size.width * 0.5f, size.height * 0.32f)
+    val r = size.width * 0.17f
+    drawCircle(Brush.radialGradient(listOf(Color(0x99FFB347), Color.Transparent), center = c, radius = r * 3f), r * 3f, c)
+    for (i in 0 until 24) {
+        val ang = i * TAU / 24f + t * TAU
+        val len = r * (0.5f + 0.4f * sin(t * TAU * 6f + i * 2f))
+        drawLine(Color(0xFFFFD27A).copy(alpha = 0.5f), Offset(c.x + cos(ang) * r * 1.05f, c.y + sin(ang) * r * 1.05f),
+            Offset(c.x + cos(ang) * (r * 1.05f + len), c.y + sin(ang) * (r * 1.05f + len)), strokeWidth = 3f, cap = StrokeCap.Round)
+    }
+    drawCircle(Brush.radialGradient(listOf(Color(0xFFFFF3B0), Color(0xFFFF8A1F)), center = c, radius = r), r, c)
+}
+
+private fun DrawScope.eclipse(t: Float) {
+    val c = Offset(size.width * 0.5f, size.height * 0.33f)
+    val r = size.width * 0.16f
+    val mx = c.x + sin(t * TAU) * r * 2.4f
+    val cover = 1f - (abs(mx - c.x) / (r * 2f)).coerceIn(0f, 1f)
+    starsBg(t, 50, 0.3f + 0.7f * cover)
+    drawCircle(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.25f + 0.55f * cover), Color.Transparent), center = c, radius = r * (2.2f + cover)), r * (2.2f + cover), c)
+    drawCircle(Color(0xFFFFF1C2), r, c)
+    drawCircle(Color(0xFF05050A), r * 0.98f, Offset(mx, c.y))
+}
+
+private fun DrawScope.meteors(t: Float) {
+    starsBg(t, 40)
+    for (i in 0 until 14) {
+        val life = (t * (6 + i % 4) + rnd(i, 2)) % 1f
+        val hx = size.width * (0.2f + rnd(i, 3)) - life * size.width * 0.8f
+        val hy = -40f + life * size.height * 1.1f
+        for (k in 0 until 14) drawCircle(Color.White.copy(alpha = (1f - k / 14f) * 0.7f * sin(life * 3.1416f)), 2.6f - k * 0.14f, Offset(hx + k * 7f, hy - k * 11f))
+    }
+    drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color(0x442A5AA8)), startY = size.height * 0.75f, endY = size.height))
+}
+
+private fun DrawScope.saturn(t: Float) {
+    starsBg(t, 50)
+    val c = Offset(size.width * 0.5f, size.height * 0.38f)
+    val r = size.width * 0.15f
+    val ringTop = Offset(c.x - r * 2f, c.y - r * 0.45f)
+    val ringSize = Size(r * 4f, r * 0.9f)
+    val ring = Color(0xFFE9D8A6).copy(alpha = 0.6f)
+    drawArc(ring, 180f, 180f, false, ringTop, ringSize, style = Stroke(10f))
+    drawCircle(Brush.radialGradient(listOf(Color(0xFFF3D9A0), Color(0xFFB98A4A)), center = Offset(c.x - r * 0.3f, c.y - r * 0.3f), radius = r * 1.4f), r, c)
+    drawArc(ring, 0f, 180f, false, ringTop, ringSize, style = Stroke(10f))
+    for (i in 0 until 3) {
+        val a = t * TAU * (i + 1) + i * 2f
+        drawCircle(Color(0xFFDDDDDD), 4f + i, Offset(c.x + cos(a) * r * (2.4f + i * 0.4f), c.y + sin(a) * r * 0.9f))
+    }
+}
+
+private fun DrawScope.nebula(t: Float) {
+    val cols = listOf(Color(0xFFFF3D9A), Color(0xFF22D3EE), Color(0xFFFFA24A), Color(0xFF8B5CF6))
+    for (i in 0 until 6) {
+        val c = Offset(size.width * (0.5f + 0.35f * sin(t * TAU + i * 1.3f)), size.height * (0.45f + 0.3f * cos(t * TAU + i * 2.1f)))
+        val r = size.width * 0.55f
+        drawCircle(Brush.radialGradient(listOf(cols[i % 4].copy(alpha = 0.16f), Color.Transparent), center = c, radius = r), r, c)
+    }
+    starsBg(t, 70)
+}
+
+private fun DrawScope.warp(t: Float) {
+    val c = Offset(size.width * 0.5f, size.height * 0.45f)
+    for (i in 0 until 90) {
+        val life = (t * (3 + i % 4) + rnd(i, 2)) % 1f
+        val ang = rnd(i, 3) * TAU
+        val d0 = life * life * size.width * 0.9f
+        val d1 = d0 + life * 40f + 4f
+        drawLine(Color.White.copy(alpha = life * 0.8f), Offset(c.x + cos(ang) * d0, c.y + sin(ang) * d0),
+            Offset(c.x + cos(ang) * d1, c.y + sin(ang) * d1), strokeWidth = 1f + life * 2f, cap = StrokeCap.Round)
     }
 }

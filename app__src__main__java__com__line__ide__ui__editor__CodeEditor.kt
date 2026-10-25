@@ -21,12 +21,12 @@ import com.line.ide.ui.theme.LineColors
 private val mono = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 14.sp, lineHeight = 20.sp)
 
 @Composable
-fun CodeEditor(value: TextFieldValue, errorLine: Int, fontSize: Int, onChange: (TextFieldValue) -> Unit, modifier: Modifier = Modifier) {
+fun CodeEditor(value: TextFieldValue, errorLine: Int, fontSize: Int, breakpoints: Set<Int>, onChange: (TextFieldValue) -> Unit, modifier: Modifier = Modifier) {
     val m = mono.copy(fontSize = fontSize.sp, lineHeight = (fontSize + 6).sp)
     val lines = value.text.count { it == '\n' } + 1
     Row(modifier.verticalScroll(rememberScrollState())) {
         Text(
-            (1..lines).joinToString("\n") { if (it == errorLine) "●$it" else "$it" },
+            (1..lines).joinToString("\n") { if (it == errorLine) "●$it" else if (it in breakpoints) "◆$it" else "$it" },
             style = m.copy(color = if (errorLine > 0) LineColors.Error else LineColors.Muted, textAlign = TextAlign.End),
             modifier = Modifier.background(LineColors.Glass).padding(horizontal = 8.dp, vertical = 8.dp).widthIn(min = 36.dp)
         )
